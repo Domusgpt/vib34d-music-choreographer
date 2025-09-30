@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Choreography Test</title>
+    <style>
+        body {
+            background: #000;
+            color: #0ff;
+            font-family: monospace;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #0ff;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        button {
+            background: #0ff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-family: monospace;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0aa;
+        }
+        pre {
+            background: rgba(0,255,255,0.1);
+            padding: 10px;
+            border: 1px solid #0ff;
+            overflow-x: auto;
+        }
+        .success { color: #0f0; }
+        .error { color: #f00; }
+        .info { color: #ff0; }
+    </style>
+</head>
+<body>
+    <h1>🤖 VIB34D AI Choreography Test</h1>
+
+    <div class="test-section">
+        <h2>Test 1: Mock AI Analysis</h2>
+        <p>This simulates what Gemini AI would return for a typical EDM track</p>
+        <button onclick="testMockAI()">Run Mock AI Test</button>
+        <div id="mock-output"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Real Gemini API Test</h2>
+        <p>Enter your Gemini API key to test real AI analysis:</p>
+        <input type="password" id="api-key" placeholder="Enter Gemini API key..." style="width: 400px; padding: 5px; background: rgba(0,255,255,0.1); border: 1px solid #0ff; color: #0ff;">
+        <br><br>
+        <button onclick="testRealAI()">Test Real Gemini API</button>
+        <div id="real-output"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Sequence Execution Test</h2>
+        <p>Simulate how the choreographer would execute AI-generated sequences</p>
+        <button onclick="testSequenceExecution()">Run Sequence Test</button>
+        <div id="sequence-output"></div>
+    </div>
+
+    <script>
+        function testMockAI() {
+            const output = document.getElementById('mock-output');
+            output.innerHTML = '<p class="info">🤖 Generating mock AI choreography...</p>';
+
+            // This is what Gemini AI would return for a typical EDM track
+            const mockAIResponse = {
+                "songTitle": "Electronic Dance Music Track (EDM)",
+                "bpm": 128,
+                "energy": "high",
+                "genre": "EDM / Progressive House",
+                "sections": [
+                    {
+                        "name": "Intro",
+                        "startTime": 0.0,
+                        "duration": 16.0,
+                        "system": "faceted",
+                        "geometry": 1,
+                        "choreographyMode": "flow",
+                        "parameters": {
+                            "gridDensity": 15,
+                            "morphFactor": 0.5,
+                            "chaos": 0.1,
+                            "speed": 0.8,
+                            "hue": 190,
+                            "intensity": 0.4,
+                            "saturation": 0.7,
+                            "rot4dXW": 0.5,
+                            "rot4dYW": 0.3,
+                            "rot4dZW": -0.2
+                        },
+                        "description": "Gentle intro with minimal elements, building atmosphere"
+                    },
+                    {
+                        "name": "Build-Up",
+                        "startTime": 16.0,
+                        "duration": 16.0,
+                        "system": "quantum",
+                        "geometry": 3,
+                        "choreographyMode": "wave",
+                        "parameters": {
+                            "gridDensity": 30,
+                            "morphFactor": 1.0,
+                            "chaos": 0.3,
+                            "speed": 1.2,
+                            "hue": 240,
+                            "intensity": 0.6,
+                            "saturation": 0.8,
+                            "rot4dXW": 1.2,
+                            "rot4dYW": 0.8,
+                            "rot4dZW": 0.5
+                        },
+                        "description": "Energy building, adding layers, tension increasing"
+                    },
+                    {
+                        "name": "Drop / Chorus",
+                        "startTime": 32.0,
+                        "duration": 32.0,
+                        "system": "holographic",
+                        "geometry": 7,
+                        "choreographyMode": "chaos",
+                        "parameters": {
+                            "gridDensity": 80,
+                            "morphFactor": 1.8,
+                            "chaos": 0.8,
+                            "speed": 2.5,
+                            "hue": 320,
+                            "intensity": 0.9,
+                            "saturation": 1.0,
+                            "rot4dXW": 3.5,
+                            "rot4dYW": 4.2,
+                            "rot4dZW": -2.8
+                        },
+                        "description": "MASSIVE DROP! Full energy, all elements, maximum impact"
+                    },
+                    {
+                        "name": "Breakdown",
+                        "startTime": 64.0,
+                        "duration": 16.0,
+                        "system": "faceted",
+                        "geometry": 2,
+                        "choreographyMode": "flow",
+                        "parameters": {
+                            "gridDensity": 20,
+                            "morphFactor": 0.8,
+                            "chaos": 0.2,
+                            "speed": 0.9,
+                            "hue": 170,
+                            "intensity": 0.5,
+                            "saturation": 0.75,
+                            "rot4dXW": 0.8,
+                            "rot4dYW": 0.5,
+                            "rot4dZW": -0.3
+                        },
+                        "description": "Energy pulled back, melodic focus, emotional moment"
+                    },
+                    {
+                        "name": "Build-Up 2",
+                        "startTime": 80.0,
+                        "duration": 16.0,
+                        "system": "quantum",
+                        "geometry": 5,
+                        "choreographyMode": "pulse",
+                        "parameters": {
+                            "gridDensity": 45,
+                            "morphFactor": 1.3,
+                            "chaos": 0.5,
+                            "speed": 1.5,
+                            "hue": 280,
+                            "intensity": 0.7,
+                            "saturation": 0.9,
+                            "rot4dXW": 2.0,
+                            "rot4dYW": 1.5,
+                            "rot4dZW": 1.0
+                        },
+                        "description": "Second build, even more tension, preparing for final drop"
+                    },
+                    {
+                        "name": "Final Drop",
+                        "startTime": 96.0,
+                        "duration": 32.0,
+                        "system": "holographic",
+                        "geometry": 7,
+                        "choreographyMode": "chaos",
+                        "parameters": {
+                            "gridDensity": 95,
+                            "morphFactor": 2.0,
+                            "chaos": 0.95,
+                            "speed": 3.0,
+                            "hue": 15,
+                            "intensity": 1.0,
+                            "saturation": 1.0,
+                            "rot4dXW": 4.8,
+                            "rot4dYW": -3.2,
+                            "rot4dZW": 5.5
+                        },
+                        "description": "CLIMACTIC FINAL DROP! Maximum everything, peak energy"
+                    },
+                    {
+                        "name": "Outro",
+                        "startTime": 128.0,
+                        "duration": 16.0,
+                        "system": "faceted",
+                        "geometry": 0,
+                        "choreographyMode": "flow",
+                        "parameters": {
+                            "gridDensity": 10,
+                            "morphFactor": 0.3,
+                            "chaos": 0.1,
+                            "speed": 0.6,
+                            "hue": 200,
+                            "intensity": 0.3,
+                            "saturation": 0.6,
+                            "rot4dXW": 0.2,
+                            "rot4dYW": 0.1,
+                            "rot4dZW": -0.1
+                        },
+                        "description": "Gentle fade out, returning to calm, closing the journey"
+                    }
+                ],
+                "recommendations": "This EDM track follows a classic progressive house structure with two major drops. Use holographic system for maximum impact on drops, quantum for complex build-ups, and faceted for emotional breakdowns. The 4D rotations should be extreme during drops (±5 radians) and minimal during intros/outros (±0.5 radians). Chaos mode on drops, pulse mode on builds, flow mode on breakdowns."
+            };
+
+            output.innerHTML = `
+                <p class="success">✅ Mock AI Analysis Complete!</p>
+                <pre>${JSON.stringify(mockAIResponse, null, 2)}</pre>
+                <p><strong>Summary:</strong></p>
+                <ul>
+                    <li>Song Duration: 144 seconds (2:24)</li>
+                    <li>BPM: ${mockAIResponse.bpm}</li>
+                    <li>Energy: ${mockAIResponse.energy}</li>
+                    <li>Sections: ${mockAIResponse.sections.length}</li>
+                    <li>Systems Used: ${[...new Set(mockAIResponse.sections.map(s => s.system))].join(', ')}</li>
+                    <li>Choreography Modes: ${[...new Set(mockAIResponse.sections.map(s => s.choreographyMode))].join(', ')}</li>
+                </ul>
+            `;
+        }
+
+        async function testRealAI() {
+            const apiKey = document.getElementById('api-key').value.trim();
+            const output = document.getElementById('real-output');
+
+            if (!apiKey) {
+                output.innerHTML = '<p class="error">❌ Please enter a Gemini API key</p>';
+                return;
+            }
+
+            output.innerHTML = '<p class="info">🤖 Calling real Gemini API...</p>';
+
+            try {
+                const prompt = `You are a music video choreographer AI. Create a choreography plan for a 180-second EDM track at 128 BPM.
+
+Return ONLY valid JSON (no markdown):
+{
+  "songTitle": "title",
+  "bpm": 128,
+  "energy": "high",
+  "genre": "EDM",
+  "sections": [
+    {
+      "name": "Intro",
+      "startTime": 0.0,
+      "duration": 30.0,
+      "system": "faceted",
+      "geometry": 1,
+      "choreographyMode": "flow",
+      "parameters": {
+        "gridDensity": 15,
+        "morphFactor": 1.0,
+        "chaos": 0.2,
+        "speed": 1.0,
+        "hue": 200,
+        "intensity": 0.5,
+        "saturation": 0.8,
+        "rot4dXW": 0.5,
+        "rot4dYW": 0.3,
+        "rot4dZW": 0.2
+      },
+      "description": "intro description"
+    }
+  ],
+  "recommendations": "strategy"
+}
+
+Systems: faceted/quantum/holographic
+Modes: chaos/pulse/wave/flow/dynamic
+Geometry: 0-7
+Parameters: gridDensity(5-100), morphFactor(0-2), chaos(0-1), speed(0.1-3), hue(0-360), intensity(0-1), saturation(0-1), rot4dXW/YW/ZW(-6.28 to 6.28)`;
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: prompt
+                            }]
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                let text = data.candidates[0].content.parts[0].text;
+
+                // Extract JSON
+                if (text.includes('```json')) {
+                    text = text.replace(/```json\n/, '').replace(/\n```/, '');
+                } else if (text.includes('```')) {
+                    text = text.replace(/```\n/, '').replace(/\n```/, '');
+                }
+
+                const result = JSON.parse(text);
+
+                output.innerHTML = `
+                    <p class="success">✅ Real Gemini API Response Received!</p>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                    <p><strong>API Status:</strong> Working perfectly! ✨</p>
+                `;
+
+            } catch (error) {
+                output.innerHTML = `
+                    <p class="error">❌ Error: ${error.message}</p>
+                    <p>Please check:</p>
+                    <ul>
+                        <li>API key is valid</li>
+                        <li>Gemini API is enabled in your Google Cloud project</li>
+                        <li>You have API quota remaining</li>
+                    </ul>
+                    <p><strong>Get API key:</strong> <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #0ff;">https://aistudio.google.com/app/apikey</a></p>
+                `;
+            }
+        }
+
+        function testSequenceExecution() {
+            const output = document.getElementById('sequence-output');
+            output.innerHTML = '<p class="info">🎬 Simulating sequence execution...</p>';
+
+            // Simulate what happens when sequences are executed
+            const sequences = [
+                { name: "Intro", startTime: 0, duration: 16, system: "faceted", active: false },
+                { name: "Build-Up", startTime: 16, duration: 16, system: "quantum", active: false },
+                { name: "Drop", startTime: 32, duration: 32, system: "holographic", active: false },
+                { name: "Breakdown", startTime: 64, duration: 16, system: "faceted", active: false },
+                { name: "Final Drop", startTime: 80, duration: 32, system: "holographic", active: false }
+            ];
+
+            let log = '<pre>🎵 SIMULATING PLAYBACK:\n\n';
+            let currentTime = 0;
+
+            const interval = setInterval(() => {
+                sequences.forEach(seq => {
+                    const inSequence = currentTime >= seq.startTime && currentTime < (seq.startTime + seq.duration);
+
+                    if (inSequence && !seq.active) {
+                        seq.active = true;
+                        log += `[${currentTime.toFixed(1)}s] 🎬 ACTIVATE: ${seq.name} (${seq.system} system)\n`;
+                        output.innerHTML = `<p class="info">🎬 Executing sequences...</p>${log}</pre>`;
+                    } else if (!inSequence && seq.active) {
+                        seq.active = false;
+                        log += `[${currentTime.toFixed(1)}s] ⏸️  DEACTIVATE: ${seq.name}\n`;
+                        output.innerHTML = `<p class="info">🎬 Executing sequences...</p>${log}</pre>`;
+                    }
+                });
+
+                currentTime += 1;
+
+                if (currentTime > 120) {
+                    clearInterval(interval);
+                    log += '\n✅ SEQUENCE EXECUTION TEST COMPLETE!\n</pre>';
+                    output.innerHTML = `<p class="success">✅ Test Complete!</p>${log}`;
+                }
+            }, 100);
+        }
+    </script>
+</body>
+</html>
