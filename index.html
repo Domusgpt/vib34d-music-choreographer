@@ -413,6 +413,13 @@
             <input type="file" id="audio-file-input" accept="audio/*">
         </div>
 
+        <div class="control-group" style="margin-top: 10px;">
+            <label style="font-size: 10px; margin-bottom: 5px; display: block;">🤖 GEMINI API KEY (for AI choreography)</label>
+            <input type="password" id="gemini-api-key" placeholder="Enter Gemini API key..." style="width: 100%; padding: 5px; font-size: 9px; background: rgba(0,255,255,0.1); border: 1px solid #0ff; color: #0ff;">
+            <button class="ui-btn" id="analyze-song-btn" style="width: 100%; margin-top: 5px; font-size: 9px;">🎵 ANALYZE SONG WITH AI</button>
+            <div id="ai-analysis-status" style="font-size: 8px; margin-top: 5px; color: #0ff;"></div>
+        </div>
+
         <div class="system-pills">
             <div class="system-pill active" data-system="faceted">FACETED</div>
             <div class="system-pill" data-system="quantum">QUANTUM</div>
@@ -465,6 +472,23 @@
         <div class="control-group">
             <label>SPEED: <span id="speed-val" class="value-display">1.0</span></label>
             <input type="range" id="speed-slider" min="0.1" max="3" step="0.1" value="1.0">
+        </div>
+
+        <h3 style="margin-top: 20px;">🌀 4D ROTATIONS</h3>
+
+        <div class="control-group">
+            <label>ROT XW: <span id="rot4d-xw-val" class="value-display">0.0</span></label>
+            <input type="range" id="rot4d-xw-slider" min="-6.28" max="6.28" step="0.1" value="0.0">
+        </div>
+
+        <div class="control-group">
+            <label>ROT YW: <span id="rot4d-yw-val" class="value-display">0.0</span></label>
+            <input type="range" id="rot4d-yw-slider" min="-6.28" max="6.28" step="0.1" value="0.0">
+        </div>
+
+        <div class="control-group">
+            <label>ROT ZW: <span id="rot4d-zw-val" class="value-display">0.0</span></label>
+            <input type="range" id="rot4d-zw-slider" min="-6.28" max="6.28" step="0.1" value="0.0">
         </div>
 
         <div class="control-group">
@@ -803,7 +827,10 @@
                     { slider: 'density-slider', param: 'gridDensity', display: 'density-val' },
                     { slider: 'morph-slider', param: 'morphFactor', display: 'morph-val' },
                     { slider: 'chaos-slider', param: 'chaos', display: 'chaos-val' },
-                    { slider: 'speed-slider', param: 'speed', display: 'speed-val' }
+                    { slider: 'speed-slider', param: 'speed', display: 'speed-val' },
+                    { slider: 'rot4d-xw-slider', param: 'rot4dXW', display: 'rot4d-xw-val' },
+                    { slider: 'rot4d-yw-slider', param: 'rot4dYW', display: 'rot4d-yw-val' },
+                    { slider: 'rot4d-zw-slider', param: 'rot4dZW', display: 'rot4d-zw-val' }
                 ];
 
                 controls.forEach(({ slider, param, display, isSelect }) => {
@@ -866,6 +893,9 @@
                 // Export/Import
                 document.getElementById('export-btn').addEventListener('click', () => this.exportChoreography());
                 document.getElementById('import-btn').addEventListener('click', () => this.importChoreography());
+
+                // AI Song Analysis
+                document.getElementById('analyze-song-btn').addEventListener('click', () => this.analyzeSongWithAI());
             }
 
             setupAudio() {
@@ -1297,6 +1327,219 @@
                 setParam('rot4dXW', Math.max(-6.28, Math.min(6.28, rot4dXW)));
                 setParam('rot4dYW', Math.max(-6.28, Math.min(6.28, rot4dYW)));
                 setParam('rot4dZW', Math.max(-6.28, Math.min(6.28, rot4dZW)));
+            }
+
+            async analyzeSongWithAI() {
+                const apiKey = document.getElementById('gemini-api-key').value.trim();
+                const statusEl = document.getElementById('ai-analysis-status');
+
+                if (!apiKey) {
+                    statusEl.textContent = '⚠️ Please enter Gemini API key';
+                    statusEl.style.color = '#ff0080';
+                    return;
+                }
+
+                if (!this.audioElement) {
+                    statusEl.textContent = '⚠️ Please load an audio file first';
+                    statusEl.style.color = '#ff0080';
+                    return;
+                }
+
+                statusEl.textContent = '🤖 Analyzing song structure with AI...';
+                statusEl.style.color = '#00ffff';
+
+                try {
+                    // Analyze the audio data we have
+                    const songAnalysis = await this.getAIChoreographyInstructions(apiKey);
+
+                    console.log('🎭 AI Choreography Instructions:', songAnalysis);
+
+                    // Apply AI choreography instructions
+                    this.applyAIChoreography(songAnalysis);
+
+                    statusEl.textContent = `✅ AI Analysis complete! ${songAnalysis.sections?.length || 0} sections detected`;
+                    statusEl.style.color = '#00ff00';
+
+                } catch (error) {
+                    console.error('AI Analysis failed:', error);
+                    statusEl.textContent = `❌ AI Analysis failed: ${error.message}`;
+                    statusEl.style.color = '#ff0000';
+                }
+            }
+
+            async getAIChoreographyInstructions(apiKey) {
+                const songDuration = this.duration || 180; // Default 3 minutes if not loaded yet
+                const currentBPM = this.avgBeatInterval > 0 ? (60000 / this.avgBeatInterval).toFixed(0) : 120;
+
+                const prompt = `You are a music video choreographer AI. Analyze this song and create a detailed choreography plan for a 4D visualization system.
+
+Song Information:
+- Duration: ${songDuration.toFixed(1)} seconds
+- Detected BPM: ${currentBPM}
+- File format: Audio file
+
+Create a choreography plan with these sections (return ONLY valid JSON):
+
+{
+  "songTitle": "Detected or estimated song title",
+  "bpm": ${currentBPM},
+  "energy": "low/medium/high/extreme",
+  "genre": "detected or estimated genre",
+  "sections": [
+    {
+      "name": "Intro/Verse/Chorus/Drop/Bridge/Outro/etc",
+      "startTime": 0.0,
+      "duration": 30.0,
+      "system": "faceted/quantum/holographic",
+      "geometry": 0-7,
+      "choreographyMode": "chaos/pulse/wave/flow/dynamic",
+      "parameters": {
+        "gridDensity": 5-100,
+        "morphFactor": 0-2,
+        "chaos": 0-1,
+        "speed": 0.1-3,
+        "hue": 0-360,
+        "intensity": 0-1,
+        "saturation": 0-1,
+        "rot4dXW": -6.28 to 6.28,
+        "rot4dYW": -6.28 to 6.28,
+        "rot4dZW": -6.28 to 6.28
+      },
+      "description": "What's happening musically"
+    }
+  ],
+  "recommendations": "Overall choreography strategy"
+}
+
+Choreography Guidelines:
+- Use "faceted" for simple/minimal sections
+- Use "quantum" for complex/busy sections
+- Use "holographic" for intense/climactic sections
+- Chaos mode: Intense drops, rapid changes
+- Pulse mode: Strong beats, rhythmic sections
+- Wave mode: Smooth ambient builds
+- Flow mode: Quiet intros/outros
+- Dynamic mode: Balanced sections
+
+Return ONLY the JSON object, no markdown formatting.`;
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: prompt
+                            }]
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Gemini API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const text = data.candidates[0].content.parts[0].text;
+
+                // Extract JSON from response (remove markdown if present)
+                let jsonText = text.trim();
+                if (jsonText.startsWith('```json')) {
+                    jsonText = jsonText.replace(/```json\n/, '').replace(/\n```$/, '');
+                } else if (jsonText.startsWith('```')) {
+                    jsonText = jsonText.replace(/```\n/, '').replace(/\n```$/, '');
+                }
+
+                return JSON.parse(jsonText);
+            }
+
+            applyAIChoreography(analysis) {
+                console.log('🎭 Applying AI Choreography:', analysis);
+
+                // Clear existing sequences
+                this.sequences = [];
+
+                // Create choreography sequences from AI analysis
+                if (analysis.sections && Array.isArray(analysis.sections)) {
+                    analysis.sections.forEach((section, index) => {
+                        console.log(`🎬 Section ${index + 1}: ${section.name} (${section.startTime}s, ${section.system})`);
+
+                        // Create a timed sequence for this section
+                        this.sequences.push({
+                            name: section.name,
+                            startTime: section.startTime,
+                            duration: section.duration,
+                            system: section.system,
+                            geometry: section.geometry,
+                            mode: section.choreographyMode,
+                            parameters: section.parameters,
+                            active: false
+                        });
+                    });
+
+                    // Start monitoring for sequence activation
+                    this.startSequenceMonitoring();
+
+                    console.log(`✅ Applied ${analysis.sections.length} AI-generated sequences`);
+                }
+
+                // Display recommendations
+                if (analysis.recommendations) {
+                    console.log(`💡 AI Recommendations: ${analysis.recommendations}`);
+                }
+            }
+
+            startSequenceMonitoring() {
+                // Monitor audio playback and activate sequences at correct times
+                if (this.sequenceMonitorInterval) {
+                    clearInterval(this.sequenceMonitorInterval);
+                }
+
+                this.sequenceMonitorInterval = setInterval(() => {
+                    if (!this.audioElement || !this.isPlaying) return;
+
+                    const currentTime = this.audioElement.currentTime;
+
+                    this.sequences.forEach(seq => {
+                        const inSequence = currentTime >= seq.startTime && currentTime < (seq.startTime + seq.duration);
+
+                        if (inSequence && !seq.active) {
+                            // Activate sequence
+                            console.log(`🎬 Activating sequence: ${seq.name} at ${currentTime.toFixed(1)}s`);
+                            seq.active = true;
+
+                            // Switch system if needed
+                            if (seq.system && seq.system !== this.currentSystem) {
+                                this.switchSystem(seq.system);
+                            }
+
+                            // Apply parameters
+                            if (seq.parameters) {
+                                Object.entries(seq.parameters).forEach(([param, value]) => {
+                                    this.setParameter(param, value);
+                                    this.baseParams[param] = value; // Update base params
+                                });
+                            }
+
+                            // Set choreography mode
+                            if (seq.mode) {
+                                this.choreographyMode = seq.mode;
+                                console.log(`🎭 Choreography mode: ${seq.mode}`);
+                            }
+
+                            // Set geometry
+                            if (seq.geometry !== undefined) {
+                                this.setParameter('geometry', seq.geometry);
+                            }
+
+                        } else if (!inSequence && seq.active) {
+                            // Deactivate sequence
+                            seq.active = false;
+                        }
+                    });
+                }, 100); // Check every 100ms
             }
 
             async play() {
