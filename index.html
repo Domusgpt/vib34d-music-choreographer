@@ -2576,30 +2576,24 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                 });
             }
 
-            // VIDEO RECORDING METHODS (DIRECT CANVAS CAPTURE)
+            // VIDEO RECORDING METHODS (STABLE CAPTURE - SURVIVES SYSTEM SWITCHES)
             async startRecording() {
                 try {
-                    console.log('🎥 Starting direct canvas capture recording...');
+                    console.log('🎥 Starting stable recording system...');
 
-                    // Get the stage container
+                    // Get stage container dimensions
                     const stageContainer = document.getElementById('stage-container');
+                    const width = window.innerWidth;
+                    const height = window.innerHeight;
 
-                    // Get all visible canvases
-                    const canvases = Array.from(stageContainer.querySelectorAll('canvas'));
-                    console.log(`📹 Found ${canvases.length} canvases to capture`);
-
-                    if (canvases.length === 0) {
-                        throw new Error('No canvases found to record');
-                    }
-
-                    // Use the first canvas dimensions (they should all be the same)
-                    const width = canvases[0].width || window.innerWidth;
-                    const height = canvases[0].height || window.innerHeight;
-
-                    // Create a composite canvas for recording at actual canvas size
+                    // Create a dedicated recording canvas (persistent, not destroyed by system switches)
                     this.recordingCanvas = document.createElement('canvas');
                     this.recordingCanvas.width = width;
                     this.recordingCanvas.height = height;
+                    this.recordingCanvas.id = 'recording-canvas';
+                    this.recordingCanvas.style.display = 'none'; // Hidden from user
+                    document.body.appendChild(this.recordingCanvas);
+
                     const ctx = this.recordingCanvas.getContext('2d', { alpha: false });
 
                     console.log(`📐 Recording canvas: ${width}x${height}`);
@@ -2648,7 +2642,8 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                         this.saveRecording();
                     };
 
-                    // CRITICAL: Continuous capture loop that draws canvases immediately
+                    // CRITICAL: Dynamic capture loop that re-queries canvases each frame
+                    // This survives system switches because it looks up canvases live
                     const renderFrame = () => {
                         if (!this.isRecording) return;
 
@@ -2656,14 +2651,17 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                         ctx.fillStyle = '#000000';
                         ctx.fillRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
 
-                        // Draw all canvases immediately (no setTimeout needed)
-                        canvases.forEach(canvas => {
+                        // DYNAMIC: Get current canvases (survives system switches)
+                        const currentCanvases = Array.from(stageContainer.querySelectorAll('canvas'));
+
+                        // Draw all currently active canvases
+                        currentCanvases.forEach(canvas => {
                             if (canvas && canvas.width > 0 && canvas.height > 0) {
                                 try {
-                                    // Draw canvas at actual size (no scaling)
-                                    ctx.drawImage(canvas, 0, 0);
+                                    // Draw canvas scaled to recording canvas size
+                                    ctx.drawImage(canvas, 0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
                                 } catch (e) {
-                                    // Silently skip errored canvases
+                                    // Silently skip errored canvases (e.g., during system switch)
                                 }
                             }
                         });
@@ -2695,7 +2693,7 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                         }
                     }, 1000);
 
-                    console.log('✅ Recording started - direct canvas capture');
+                    console.log('✅ Recording started - stable system-switch-proof capture');
 
                 } catch (error) {
                     console.error('❌ Recording error:', error);
@@ -2709,6 +2707,12 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
 
                 this.isRecording = false;
                 this.mediaRecorder.stop();
+
+                // Remove recording canvas from DOM
+                if (this.recordingCanvas && this.recordingCanvas.parentNode) {
+                    this.recordingCanvas.parentNode.removeChild(this.recordingCanvas);
+                    this.recordingCanvas = null;
+                }
 
                 // Disconnect recording audio destination if it exists
                 if (this.recordingAudioDest) {
