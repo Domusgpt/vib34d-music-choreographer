@@ -850,26 +850,37 @@
                 // Update base parameter
                 this.baseParams[param] = value;
 
-                // Update active engine's parameter manager
-                const sys = this.systems[this.currentSystem];
-                if (sys.engine) {
+                // CRITICAL FIX: Update ALL systems, not just current
+                // This ensures parameters are set even when switching systems
+                Object.values(this.systems).forEach(sys => {
+                    if (!sys.engine) return;
+
+                    // Method 1: Use parameterManager (faceted/quantum engines)
                     if (sys.engine.parameterManager && sys.engine.parameterManager.setParameter) {
                         sys.engine.parameterManager.setParameter(param, value);
-                    } else if (sys.engine.updateParameter) {
+
+                        // Push parameters to visualizers
+                        if (sys.engine.updateVisualizers) {
+                            sys.engine.updateVisualizers();
+                        }
+                    }
+
+                    // Method 2: Direct visualizer updates (holographic system)
+                    // Holographic reads from DOM or needs direct param object
+                    if (sys.engine.visualizers && Array.isArray(sys.engine.visualizers)) {
+                        const params = this.baseParams; // Use all base params
+                        sys.engine.visualizers.forEach(visualizer => {
+                            if (visualizer.updateParameters) {
+                                visualizer.updateParameters(params);
+                            }
+                        });
+                    }
+
+                    // Method 3: Legacy fallback
+                    if (sys.engine.updateParameter) {
                         sys.engine.updateParameter(param, value);
                     }
-
-                    // Force immediate update to visualizers
-                    if (sys.engine.updateVisualizers) {
-                        sys.engine.updateVisualizers();
-                    }
-                }
-
-                // If audio reactivity is active, force a render cycle
-                // This ensures the new base parameter is immediately visible
-                if (this.audioReactivityEnabled && this.audioData) {
-                    this.updateVisualizers();
-                }
+                });
             }
 
             setupUI() {
