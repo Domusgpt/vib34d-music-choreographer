@@ -2031,7 +2031,8 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
 
                     case 'smooth-fade':
                         // Smooth transition through palette over section
-                        const progress = (currentTime % palette.duration) / palette.duration;
+                        const duration = palette.duration || 16;
+                        const progress = (currentTime % duration) / duration;
                         const exactIndex = progress * colors.length;
                         colorIndex = Math.floor(exactIndex) % colors.length;
                         blend = exactIndex - colorIndex;
@@ -2053,9 +2054,16 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                         break;
                 }
 
-                // Get current and next colors
+                // Safety check: ensure colorIndex is valid
+                colorIndex = Math.max(0, Math.min(colorIndex, colors.length - 1));
+
+                // Get current and next colors with safety check
                 const currentColor = colors[colorIndex];
-                const nextColor = colors[(colorIndex + 1) % colors.length];
+                if (!currentColor) {
+                    console.warn('Invalid color at index', colorIndex, 'in palette', palette);
+                    return;
+                }
+                const nextColor = colors[(colorIndex + 1) % colors.length] || currentColor;
 
                 // Blend if needed
                 if (blend > 0 && mode === 'smooth-fade') {
@@ -2184,9 +2192,13 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                 section.mode = template.mode;
                 section.parameters = { ...template.parameters };
 
-                // Copy color palette with optional variation
+                // Deep copy color palette with optional variation
                 if (template.colorPalette) {
-                    section.colorPalette = { ...template.colorPalette };
+                    section.colorPalette = {
+                        ...template.colorPalette,
+                        colors: template.colorPalette.colors ?
+                            template.colorPalette.colors.map(c => ({ ...c })) : []
+                    };
 
                     // Apply variation adjustments
                     if (variation) {
@@ -2194,9 +2206,12 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                     }
                 }
 
-                // Copy parameter sweeps
+                // Deep copy parameter sweeps
                 if (template.parameterSweeps) {
-                    section.parameterSweeps = { ...template.parameterSweeps };
+                    section.parameterSweeps = {};
+                    Object.entries(template.parameterSweeps).forEach(([key, sweep]) => {
+                        section.parameterSweeps[key] = { ...sweep };
+                    });
                 }
 
                 // Override system if specified
@@ -2460,14 +2475,21 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                 const progressBar = document.getElementById('export-progress');
                 const progressFill = document.getElementById('export-progress-fill');
 
-                statusEl.textContent = '🎥 Auto-recording will start in 2 seconds...';
+                // Safety check for UI elements
+                if (!statusEl) {
+                    console.error('Export status element not found');
+                    alert('Export UI elements not found. Please refresh the page.');
+                    return;
+                }
+
+                if (statusEl) statusEl.textContent = '🎥 Auto-recording will start in 2 seconds...';
                 await new Promise(resolve => setTimeout(resolve, 2000));
 
                 // Start recording
                 await this.startRecording();
 
-                statusEl.textContent = '▶️ Auto-playing choreography...';
-                progressFill.style.width = '30%';
+                if (statusEl) statusEl.textContent = '▶️ Auto-playing choreography...';
+                if (progressFill) progressFill.style.width = '30%';
 
                 // Start playback from beginning
                 this.audioElement.currentTime = 0;
@@ -2476,7 +2498,7 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                 // Monitor progress
                 const duration = this.audioElement.duration;
                 const progressInterval = setInterval(() => {
-                    if (this.audioElement) {
+                    if (this.audioElement && statusEl && progressFill) {
                         const progress = (this.audioElement.currentTime / duration) * 100;
                         progressFill.style.width = `${30 + (progress * 0.6)}%`; // 30% to 90%
                         statusEl.textContent = `🎬 Recording... ${progress.toFixed(0)}% complete`;
@@ -2494,13 +2516,15 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                 // Stop recording
                 this.stopRecording();
 
-                progressFill.style.width = '100%';
-                statusEl.textContent = '✅ Video export complete! Check your downloads.';
-                statusEl.style.color = '#0f0';
+                if (progressFill) progressFill.style.width = '100%';
+                if (statusEl) {
+                    statusEl.textContent = '✅ Video export complete! Check your downloads.';
+                    statusEl.style.color = '#0f0';
+                }
 
                 setTimeout(() => {
-                    progressBar.style.display = 'none';
-                    statusEl.textContent = '';
+                    if (progressBar) progressBar.style.display = 'none';
+                    if (statusEl) statusEl.textContent = '';
                 }, 5000);
             }
 
