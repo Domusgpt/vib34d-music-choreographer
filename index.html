@@ -438,6 +438,14 @@
             <div id="ai-analysis-status" style="font-size: 8px; margin-top: 5px; color: #0ff;"></div>
         </div>
 
+        <div class="control-group" style="margin-top: 10px; border-top: 1px solid rgba(0,255,255,0.3); padding-top: 10px;">
+            <label style="font-size: 10px; margin-bottom: 5px; display: block;">🎥 VIDEO RECORDING</label>
+            <button class="ui-btn" id="start-recording-btn" style="width: 100%; font-size: 9px; background: #f00;">⏺ START RECORDING</button>
+            <button class="ui-btn" id="stop-recording-btn" style="width: 100%; margin-top: 5px; font-size: 9px; background: #555; display: none;">⏹ STOP RECORDING</button>
+            <div id="recording-status" style="font-size: 8px; margin-top: 5px; color: #f00;"></div>
+            <div id="recording-timer" style="font-size: 10px; margin-top: 5px; color: #0ff; display: none;">⏱ 0:00</div>
+        </div>
+
         <div class="system-pills">
             <div class="system-pill active" data-system="faceted">FACETED</div>
             <div class="system-pill" data-system="quantum">QUANTUM</div>
@@ -608,6 +616,13 @@
                 this.currentTime = 0;
                 this.duration = 0;
                 this.isPlaying = false;
+
+                // Video recording
+                this.mediaRecorder = null;
+                this.recordedChunks = [];
+                this.isRecording = false;
+                this.recordingStartTime = 0;
+                this.recordingTimer = null;
 
                 // Pattern library
                 this.patterns = {
@@ -925,6 +940,10 @@
 
                 // AI Song Analysis
                 document.getElementById('analyze-song-btn').addEventListener('click', () => this.analyzeSongWithAI());
+
+                // Video Recording
+                document.getElementById('start-recording-btn').addEventListener('click', () => this.startRecording());
+                document.getElementById('stop-recording-btn').addEventListener('click', () => this.stopRecording());
             }
 
             setupAudio() {
@@ -1797,6 +1816,155 @@ Return ONLY the JSON object, no markdown formatting.`;
                 });
 
                 input.click();
+            }
+
+            // VIDEO RECORDING METHODS
+            async startRecording() {
+                try {
+                    // Get the stage container
+                    const stageContainer = document.getElementById('stage-container');
+
+                    // Create a composite canvas for recording
+                    this.recordingCanvas = document.createElement('canvas');
+                    this.recordingCanvas.width = window.innerWidth;
+                    this.recordingCanvas.height = window.innerHeight;
+                    const ctx = this.recordingCanvas.getContext('2d');
+
+                    // Get all visible canvases
+                    const canvases = stageContainer.querySelectorAll('canvas');
+
+                    // Start capturing frames
+                    const stream = this.recordingCanvas.captureStream(30); // 30 FPS
+
+                    // Add audio if available
+                    if (this.audioElement) {
+                        const audioCtx = new AudioContext();
+                        const source = audioCtx.createMediaElementSource(this.audioElement);
+                        const dest = audioCtx.createMediaStreamDestination();
+                        source.connect(dest);
+                        source.connect(audioCtx.destination); // Continue playing audio
+
+                        // Combine video and audio streams
+                        const audioTrack = dest.stream.getAudioTracks()[0];
+                        stream.addTrack(audioTrack);
+                    }
+
+                    // Create MediaRecorder
+                    const options = {
+                        mimeType: 'video/webm;codecs=vp9',
+                        videoBitsPerSecond: 8000000 // 8 Mbps for high quality
+                    };
+
+                    // Fallback if VP9 not supported
+                    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                        options.mimeType = 'video/webm;codecs=vp8';
+                    }
+
+                    this.mediaRecorder = new MediaRecorder(stream, options);
+                    this.recordedChunks = [];
+
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            this.recordedChunks.push(event.data);
+                        }
+                    };
+
+                    this.mediaRecorder.onstop = () => {
+                        this.saveRecording();
+                    };
+
+                    // Start rendering loop for recording
+                    const renderFrame = () => {
+                        if (!this.isRecording) return;
+
+                        // Clear composite canvas
+                        ctx.clearRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+
+                        // Draw all canvases onto composite canvas
+                        canvases.forEach(canvas => {
+                            ctx.drawImage(canvas, 0, 0);
+                        });
+
+                        requestAnimationFrame(renderFrame);
+                    };
+
+                    // Start recording
+                    this.mediaRecorder.start(100); // Collect data every 100ms
+                    this.isRecording = true;
+                    renderFrame();
+
+                    // Update UI
+                    document.getElementById('start-recording-btn').style.display = 'none';
+                    document.getElementById('stop-recording-btn').style.display = 'block';
+                    document.getElementById('recording-status').textContent = '⏺ RECORDING...';
+                    document.getElementById('recording-timer').style.display = 'block';
+
+                    // Start timer
+                    this.recordingStartTime = Date.now();
+                    this.recordingTimer = setInterval(() => {
+                        const elapsed = Math.floor((Date.now() - this.recordingStartTime) / 1000);
+                        const minutes = Math.floor(elapsed / 60);
+                        const seconds = elapsed % 60;
+                        document.getElementById('recording-timer').textContent =
+                            `⏱ ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    }, 1000);
+
+                    console.log('🎥 Recording started');
+
+                } catch (error) {
+                    console.error('Recording error:', error);
+                    alert(`Failed to start recording: ${error.message}`);
+                }
+            }
+
+            stopRecording() {
+                if (!this.mediaRecorder || !this.isRecording) return;
+
+                this.isRecording = false;
+                this.mediaRecorder.stop();
+
+                // Stop timer
+                if (this.recordingTimer) {
+                    clearInterval(this.recordingTimer);
+                    this.recordingTimer = null;
+                }
+
+                // Update UI
+                document.getElementById('start-recording-btn').style.display = 'block';
+                document.getElementById('stop-recording-btn').style.display = 'none';
+                document.getElementById('recording-status').textContent = '💾 Saving video...';
+
+                console.log('🎥 Recording stopped');
+            }
+
+            saveRecording() {
+                const blob = new Blob(this.recordedChunks, {
+                    type: 'video/webm'
+                });
+
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `vib34d-choreography-${Date.now()}.webm`;
+                document.body.appendChild(a);
+                a.click();
+
+                // Cleanup
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+
+                // Update UI
+                document.getElementById('recording-status').textContent = '✅ Video saved!';
+                document.getElementById('recording-timer').style.display = 'none';
+
+                setTimeout(() => {
+                    document.getElementById('recording-status').textContent = '';
+                }, 3000);
+
+                console.log('✅ Recording saved');
             }
         }
 
