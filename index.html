@@ -2627,6 +2627,9 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                     const renderFrame = () => {
                         if (!this.isRecording) return;
 
+                        // CRITICAL: Force visualizers to update for this frame
+                        this.updateVisualizers();
+
                         // Clear composite canvas
                         ctx.clearRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
 
