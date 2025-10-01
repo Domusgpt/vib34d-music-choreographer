@@ -2565,43 +2565,33 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                 });
             }
 
-            // VIDEO RECORDING METHODS (REALTIME SYNCHRONIZED)
+            // VIDEO RECORDING METHODS (DIRECT CANVAS CAPTURE)
             async startRecording() {
                 try {
-                    console.log('🎥 Initializing synchronized recording system...');
+                    console.log('🎥 Starting direct canvas capture recording...');
 
                     // Get the stage container
                     const stageContainer = document.getElementById('stage-container');
-
-                    // Create a high-res composite canvas for recording
-                    this.recordingCanvas = document.createElement('canvas');
-                    this.recordingCanvas.width = 1920;  // HD resolution
-                    this.recordingCanvas.height = 1080;
-                    const ctx = this.recordingCanvas.getContext('2d', {
-                        alpha: false,
-                        desynchronized: false  // Keep synchronized for recording
-                    });
-
-                    // Set background to black (not transparent)
-                    ctx.fillStyle = '#000000';
-                    ctx.fillRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
 
                     // Get all visible canvases
                     const canvases = Array.from(stageContainer.querySelectorAll('canvas'));
                     console.log(`📹 Found ${canvases.length} canvases to capture`);
 
-                    // Store original canvas sizes to restore later
-                    this.originalCanvasSizes = canvases.map(c => ({
-                        canvas: c,
-                        width: c.width,
-                        height: c.height
-                    }));
+                    if (canvases.length === 0) {
+                        throw new Error('No canvases found to record');
+                    }
 
-                    // Temporarily resize canvases to HD for better quality capture
-                    canvases.forEach(canvas => {
-                        canvas.width = 1920;
-                        canvas.height = 1080;
-                    });
+                    // Use the first canvas dimensions (they should all be the same)
+                    const width = canvases[0].width || window.innerWidth;
+                    const height = canvases[0].height || window.innerHeight;
+
+                    // Create a composite canvas for recording at actual canvas size
+                    this.recordingCanvas = document.createElement('canvas');
+                    this.recordingCanvas.width = width;
+                    this.recordingCanvas.height = height;
+                    const ctx = this.recordingCanvas.getContext('2d', { alpha: false });
+
+                    console.log(`📐 Recording canvas: ${width}x${height}`);
 
                     // Start capturing frames at 30 FPS
                     const stream = this.recordingCanvas.captureStream(30);
@@ -2625,13 +2615,13 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                     // Create MediaRecorder with high quality settings
                     const options = {
                         mimeType: 'video/webm;codecs=vp9',
-                        videoBitsPerSecond: 10000000 // 10 Mbps for HD quality
+                        videoBitsPerSecond: 8000000 // 8 Mbps
                     };
 
                     // Fallback if VP9 not supported
                     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
                         options.mimeType = 'video/webm;codecs=vp8';
-                        options.videoBitsPerSecond = 8000000;
+                        options.videoBitsPerSecond = 6000000;
                     }
 
                     this.mediaRecorder = new MediaRecorder(stream, options);
@@ -2647,41 +2637,25 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                         this.saveRecording();
                     };
 
-                    // CRITICAL: Synchronized rendering loop
-                    // This runs at ~30 FPS and captures canvases AFTER they've rendered
-                    let frameCount = 0;
-                    const targetFPS = 30;
-                    const frameDuration = 1000 / targetFPS;
-                    let lastFrameTime = performance.now();
-
-                    const renderFrame = (currentTime) => {
+                    // CRITICAL: Continuous capture loop that draws canvases immediately
+                    const renderFrame = () => {
                         if (!this.isRecording) return;
 
-                        const elapsed = currentTime - lastFrameTime;
+                        // Clear with black background
+                        ctx.fillStyle = '#000000';
+                        ctx.fillRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
 
-                        // Throttle to target FPS
-                        if (elapsed >= frameDuration) {
-                            lastFrameTime = currentTime - (elapsed % frameDuration);
-                            frameCount++;
-
-                            // Clear composite canvas with black background
-                            ctx.fillStyle = '#000000';
-                            ctx.fillRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
-
-                            // Draw all canvases onto composite canvas
-                            // Use a small delay to ensure WebGL has finished rendering
-                            setTimeout(() => {
-                                canvases.forEach(canvas => {
-                                    if (canvas.width > 0 && canvas.height > 0) {
-                                        try {
-                                            ctx.drawImage(canvas, 0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
-                                        } catch (e) {
-                                            console.warn('Canvas capture error:', e);
-                                        }
-                                    }
-                                });
-                            }, 0);
-                        }
+                        // Draw all canvases immediately (no setTimeout needed)
+                        canvases.forEach(canvas => {
+                            if (canvas && canvas.width > 0 && canvas.height > 0) {
+                                try {
+                                    // Draw canvas at actual size (no scaling)
+                                    ctx.drawImage(canvas, 0, 0);
+                                } catch (e) {
+                                    // Silently skip errored canvases
+                                }
+                            }
+                        });
 
                         requestAnimationFrame(renderFrame);
                     };
@@ -2710,7 +2684,7 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                         }
                     }, 1000);
 
-                    console.log('✅ Recording started - synchronized 30 FPS capture');
+                    console.log('✅ Recording started - direct canvas capture');
 
                 } catch (error) {
                     console.error('❌ Recording error:', error);
@@ -2724,16 +2698,6 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
 
                 this.isRecording = false;
                 this.mediaRecorder.stop();
-
-                // Restore original canvas sizes
-                if (this.originalCanvasSizes) {
-                    this.originalCanvasSizes.forEach(({ canvas, width, height }) => {
-                        canvas.width = width;
-                        canvas.height = height;
-                    });
-                    this.originalCanvasSizes = null;
-                    console.log('✅ Canvas sizes restored to original dimensions');
-                }
 
                 // Disconnect recording audio destination if it exists
                 if (this.recordingAudioDest) {
