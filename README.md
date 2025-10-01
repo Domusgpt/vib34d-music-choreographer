@@ -1,8 +1,34 @@
 # VIB34D Music Video Choreographer
 
-**Advanced MP3-driven 4D visualization choreography system with intelligent beat detection, tempo tracking, and dynamic mode switching.**
+**AI-Powered 4D Music Video Choreography System with Dynamic Algorithmic Motion**
+
+**✨ NEW: Phase 1 Enhanced - Dynamic Color Palettes & Parameter Sweeps!**
 
 🎵 **[LIVE DEMO](https://domusgpt.github.io/vib34d-music-choreographer/)** 🎵
+
+---
+
+## 🚀 What's New in Phase 1
+
+### **🎨 Dynamic Color Palette System**
+- **Multi-color palettes** that pulse with the beat (not just single hue values)
+- **4 transition modes:** beat-pulse, smooth-fade, snap-change, frequency-map
+- **Beat-synchronized color cycling** - colors change rhythmically with music
+- **Smooth color blending** for gradient transitions
+
+### **📊 Algorithmic Parameter Sweeps**
+- **7 sweep functions:** sine-wave, sawtooth, triangle, pulse-train, exponential-decay, beat-locked-steps, linear-sweep
+- **Parameters MOVE algorithmically** instead of sitting at fixed values
+- **Beat-synchronized motion** - rotations and parameters sync to BPM
+- **Smooth oscillations** - 4D rotations sweep smoothly through ranges
+
+### **🤖 Enhanced AI Choreography**
+- AI now generates **color palettes** for each section
+- AI generates **parameter sweeps** for dynamic motion
+- **Sections feel alive** - everything moves and pulses
+- **Much more visually engaging** than static parameters
+
+**📖 [Phase 1 Testing Guide](PHASE1_TESTING.md)** | **📋 [Enhanced AI Design](ENHANCED_AI_DESIGN.md)**
 
 ---
 
