@@ -586,6 +586,7 @@
         class UltimateChoreographer {
             constructor() {
                 this.currentSystem = 'faceted';
+                this.systemSwitchInProgress = false;
                 this.systems = {
                     faceted: { engine: null, canvases: [], active: true },
                     quantum: { engine: null, canvases: [], active: false },
@@ -732,6 +733,9 @@
                 // Wait a frame for canvases to be fully laid out
                 await new Promise(resolve => requestAnimationFrame(resolve));
 
+                // Wait another frame to ensure WebGL contexts are initialized
+                await new Promise(resolve => requestAnimationFrame(resolve));
+
                 // Create new engine
                 try {
                     if (systemName === 'faceted') {
@@ -785,10 +789,12 @@
 
                 // CRITICAL: Properly destroy old system to free GPU resources (mobile performance)
                 await this.destroySystem(this.currentSystem);
+                console.log(`✅ Old system destroyed, creating ${systemName}...`);
 
                 // Create new system (this will also create new canvases)
                 this.currentSystem = systemName;
                 await this.createSystem(systemName);
+                console.log(`✅ System switch complete: ${systemName} is now active`);
 
                 // Update UI
                 document.querySelectorAll('.system-pill').forEach(pill => {
@@ -1749,9 +1755,13 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                                 console.log(`🎬 Activating sequence: ${seq.name} at ${currentTime.toFixed(1)}s`);
                                 seq.active = true;
 
-                                // Switch system if needed
+                                // Switch system if needed (async but fire-and-forget)
                                 if (seq.system && seq.system !== this.currentSystem) {
-                                    this.switchSystem(seq.system);
+                                    // Mark that switch is happening
+                                    this.systemSwitchInProgress = true;
+                                    this.switchSystem(seq.system).then(() => {
+                                        this.systemSwitchInProgress = false;
+                                    });
                                 }
 
                                 // Apply base parameters
@@ -2642,10 +2652,16 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                         this.saveRecording();
                     };
 
+                    // Store last valid frame to use during system switches
+                    let lastValidFrame = null;
+                    let frameCount = 0;
+                    let lastCanvasCount = 0;
+
                     // CRITICAL: Dynamic capture loop that re-queries canvases each frame
                     // This survives system switches because it looks up canvases live
                     const renderFrame = () => {
                         if (!this.isRecording) return;
+                        frameCount++;
 
                         // Clear with black background
                         ctx.fillStyle = '#000000';
@@ -2654,17 +2670,48 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                         // DYNAMIC: Get current canvases (survives system switches)
                         const currentCanvases = Array.from(stageContainer.querySelectorAll('canvas'));
 
+                        // Log canvas count changes (helps debug system switches)
+                        if (currentCanvases.length !== lastCanvasCount) {
+                            console.log(`📹 Recording frame ${frameCount}: ${currentCanvases.length} canvases (was ${lastCanvasCount})`);
+                            lastCanvasCount = currentCanvases.length;
+                        }
+
+                        // Check if we have valid canvases
+                        let capturedFrame = false;
+
                         // Draw all currently active canvases
                         currentCanvases.forEach(canvas => {
                             if (canvas && canvas.width > 0 && canvas.height > 0) {
                                 try {
                                     // Draw canvas scaled to recording canvas size
                                     ctx.drawImage(canvas, 0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+                                    capturedFrame = true;
                                 } catch (e) {
-                                    // Silently skip errored canvases (e.g., during system switch)
+                                    console.warn(`📹 Frame ${frameCount}: Failed to capture canvas`, e.message);
                                 }
                             }
                         });
+
+                        // If we captured a frame, save it as last valid frame
+                        if (capturedFrame) {
+                            try {
+                                // Store current frame data for transition periods
+                                lastValidFrame = ctx.getImageData(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+                            } catch (e) {
+                                // Failed to save frame data
+                            }
+                        } else if (lastValidFrame) {
+                            // During system switch (no valid canvases), use last valid frame
+                            // This prevents black frames during transitions
+                            console.log(`📹 Frame ${frameCount}: Using buffered frame (${currentCanvases.length} canvases available)`);
+                            try {
+                                ctx.putImageData(lastValidFrame, 0, 0);
+                            } catch (e) {
+                                // Failed to restore frame data
+                            }
+                        } else {
+                            console.log(`📹 Frame ${frameCount}: No frame to capture (${currentCanvases.length} canvases, no buffer)`);
+                        }
 
                         requestAnimationFrame(renderFrame);
                     };
