@@ -1,0 +1,30 @@
+{
+  "name": "vib34d-music-choreographer",
+  "version": "1.0.0",
+  "description": "AI-Powered 4D Music Video Choreographer with Offline Rendering",
+  "main": "index.html",
+  "scripts": {
+    "serve": "python3 -m http.server 8888",
+    "render": "node render-video.js"
+  },
+  "keywords": [
+    "music-visualization",
+    "4d-geometry",
+    "ai-choreography",
+    "video-export",
+    "webgl"
+  ],
+  "author": "Paul Phillips <Paul@clearseassolutions.com>",
+  "license": "PROPRIETARY",
+  "dependencies": {
+    "puppeteer": "^21.0.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Domusgpt/vib34d-music-choreographer.git"
+  }
+}

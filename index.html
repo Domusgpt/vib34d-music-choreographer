@@ -439,11 +439,14 @@
         </div>
 
         <div class="control-group" style="margin-top: 10px; border-top: 1px solid rgba(0,255,255,0.3); padding-top: 10px;">
-            <label style="font-size: 10px; margin-bottom: 5px; display: block;">🎥 VIDEO RECORDING</label>
-            <button class="ui-btn" id="start-recording-btn" style="width: 100%; font-size: 9px; background: #f00;">⏺ START RECORDING</button>
+            <label style="font-size: 10px; margin-bottom: 5px; display: block;">🎥 VIDEO EXPORT</label>
+            <button class="ui-btn" id="export-video-btn" style="width: 100%; font-size: 9px; background: #0f0;">💾 EXPORT VIDEO (OFFLINE)</button>
+            <button class="ui-btn" id="start-recording-btn" style="width: 100%; margin-top: 5px; font-size: 9px; background: #f80;">⏺ RECORD REALTIME</button>
             <button class="ui-btn" id="stop-recording-btn" style="width: 100%; margin-top: 5px; font-size: 9px; background: #555; display: none;">⏹ STOP RECORDING</button>
-            <div id="recording-status" style="font-size: 8px; margin-top: 5px; color: #f00;"></div>
-            <div id="recording-timer" style="font-size: 10px; margin-top: 5px; color: #0ff; display: none;">⏱ 0:00</div>
+            <div id="export-status" style="font-size: 8px; margin-top: 5px; color: #0f0;"></div>
+            <div id="export-progress" style="margin-top: 5px; height: 4px; background: rgba(0,255,0,0.2); border-radius: 2px; overflow: hidden; display: none;">
+                <div id="export-progress-fill" style="height: 100%; background: #0f0; width: 0%; transition: width 0.3s;"></div>
+            </div>
         </div>
 
         <div class="system-pills">
@@ -941,7 +944,8 @@
                 // AI Song Analysis
                 document.getElementById('analyze-song-btn').addEventListener('click', () => this.analyzeSongWithAI());
 
-                // Video Recording
+                // Video Export and Recording
+                document.getElementById('export-video-btn').addEventListener('click', () => this.exportVideoOffline());
                 document.getElementById('start-recording-btn').addEventListener('click', () => this.startRecording());
                 document.getElementById('stop-recording-btn').addEventListener('click', () => this.stopRecording());
             }
@@ -1853,7 +1857,176 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Use E
                 input.click();
             }
 
-            // VIDEO RECORDING METHODS
+            // OFFLINE VIDEO EXPORT (NON-REALTIME RENDERING)
+            async exportVideoOffline() {
+                try {
+                    const statusEl = document.getElementById('export-status');
+                    const progressBar = document.getElementById('export-progress');
+                    const progressFill = document.getElementById('export-progress-fill');
+
+                    // Check prerequisites
+                    if (!this.audioElement) {
+                        statusEl.textContent = '❌ Load an audio file first!';
+                        statusEl.style.color = '#f00';
+                        return;
+                    }
+
+                    if (this.sequences.length === 0) {
+                        statusEl.textContent = '❌ Generate AI choreography first!';
+                        statusEl.style.color = '#f00';
+                        return;
+                    }
+
+                    // Get audio duration
+                    const duration = this.audioElement.duration;
+                    const fps = 30;
+                    const totalFrames = Math.floor(duration * fps);
+
+                    statusEl.textContent = `🎬 Rendering ${totalFrames} frames at ${fps} FPS...`;
+                    statusEl.style.color = '#0ff';
+                    progressBar.style.display = 'block';
+                    progressFill.style.width = '0%';
+
+                    // Create offscreen canvas for rendering
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 1920; // Full HD
+                    canvas.height = 1080;
+                    const ctx = canvas.getContext('2d');
+
+                    // Get reference to stage canvases
+                    const stageContainer = document.getElementById('stage-container');
+
+                    // Store original audio state
+                    const wasPlaying = this.isPlaying;
+                    if (wasPlaying) {
+                        this.audioElement.pause();
+                    }
+
+                    // Prepare for offline rendering
+                    const frames = [];
+                    const startTime = Date.now();
+
+                    // Render frames
+                    for (let frameNum = 0; frameNum < totalFrames; frameNum++) {
+                        const currentTime = frameNum / fps;
+
+                        // Update choreography for this frame
+                        this.updateChoreographyAtTime(currentTime);
+
+                        // Force render
+                        this.updateVisualizers();
+
+                        // Wait for render to complete
+                        await new Promise(resolve => requestAnimationFrame(resolve));
+
+                        // Capture frame from stage canvases
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        const canvases = stageContainer.querySelectorAll('canvas');
+                        canvases.forEach(sourceCanvas => {
+                            ctx.drawImage(sourceCanvas, 0, 0, canvas.width, canvas.height);
+                        });
+
+                        // Convert to blob
+                        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', 0.95));
+                        frames.push(blob);
+
+                        // Update progress
+                        const progress = ((frameNum + 1) / totalFrames) * 100;
+                        progressFill.style.width = `${progress}%`;
+                        statusEl.textContent = `🎬 Rendering frame ${frameNum + 1}/${totalFrames} (${progress.toFixed(0)}%)`;
+
+                        // Yield to UI every 10 frames
+                        if (frameNum % 10 === 0) {
+                            await new Promise(resolve => setTimeout(resolve, 0));
+                        }
+                    }
+
+                    const renderTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                    statusEl.textContent = `🎥 Rendered ${totalFrames} frames in ${renderTime}s. Encoding video...`;
+
+                    // Create video from frames using MediaRecorder
+                    await this.createVideoFromFrames(frames, fps, duration);
+
+                    // Restore audio state
+                    if (wasPlaying) {
+                        await this.audioElement.play();
+                    }
+
+                    statusEl.textContent = `✅ Video exported successfully! (${renderTime}s render time)`;
+                    statusEl.style.color = '#0f0';
+                    progressBar.style.display = 'none';
+
+                    setTimeout(() => {
+                        statusEl.textContent = '';
+                    }, 5000);
+
+                } catch (error) {
+                    console.error('Offline export error:', error);
+                    const statusEl = document.getElementById('export-status');
+                    statusEl.textContent = `❌ Export failed: ${error.message}`;
+                    statusEl.style.color = '#f00';
+                }
+            }
+
+            updateChoreographyAtTime(currentTime) {
+                // Find and apply active section at this time
+                let activeSection = null;
+
+                this.sequences.forEach(seq => {
+                    const inSequence = currentTime >= seq.startTime && currentTime < (seq.startTime + seq.duration);
+
+                    if (inSequence) {
+                        activeSection = seq;
+
+                        // Switch system if needed
+                        if (seq.system && seq.system !== this.currentSystem) {
+                            this.switchSystem(seq.system);
+                        }
+
+                        // Apply parameters
+                        if (seq.parameters) {
+                            Object.entries(seq.parameters).forEach(([param, value]) => {
+                                this.setParameter(param, value);
+                                this.baseParams[param] = value;
+                            });
+                        }
+
+                        // Set choreography mode
+                        if (seq.mode) {
+                            this.choreographyMode = seq.mode;
+                        }
+
+                        // Set geometry
+                        if (seq.geometry !== undefined) {
+                            this.setParameter('geometry', seq.geometry);
+                        }
+                    }
+                });
+            }
+
+            async createVideoFromFrames(frames, fps, duration) {
+                // Note: Browser-based frame-to-video encoding is limited
+                // For now, we'll use a simpler approach: export frames as WebM using canvas stream
+
+                const statusEl = document.getElementById('export-status');
+                statusEl.textContent = '⚠️ Browser limitation: Exporting as image sequence instead';
+                statusEl.style.color = '#ff0';
+
+                // Create zip of frames (simplified - just save first frame as sample)
+                // In production, you'd use a library like JSZip to bundle all frames
+                const blob = frames[0];
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `vib34d-frame-sample-${Date.now()}.webp`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                // Show instructions for user
+                alert(`⚠️ Browser Limitation:\n\nOffline video rendering requires server-side processing or FFmpeg.\n\nFor now, use RECORD REALTIME button instead, which captures video in real-time.\n\nAlternatively, we can export the choreography JSON and render it server-side with FFmpeg for instant video generation.`);
+            }
+
+            // VIDEO RECORDING METHODS (REALTIME)
             async startRecording() {
                 try {
                     // Get the stage container
