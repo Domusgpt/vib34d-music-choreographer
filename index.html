@@ -1419,25 +1419,58 @@
                 const songDuration = this.duration || 180; // Default 3 minutes if not loaded yet
                 const currentBPM = this.avgBeatInterval > 0 ? (60000 / this.avgBeatInterval).toFixed(0) : 120;
 
-                const prompt = `You are a music video choreographer AI. Analyze this song and create a detailed choreography plan for a 4D visualization system.
+                const prompt = `You are an EXTREME music video choreographer AI specializing in 4D mathematical visualizations synchronized to musical patterns. Create a HIGHLY DETAILED choreography plan with EXTREME parameter values and BEAT-SYNCHRONIZED changes.
 
 Song Information:
 - Duration: ${songDuration.toFixed(1)} seconds
 - Detected BPM: ${currentBPM}
-- File format: Audio file
 
-Create a choreography plan with these sections (return ONLY valid JSON):
+🎯 CRITICAL CHOREOGRAPHY RULES:
+1. **EXTREME PARAMETER VALUES**: Use the FULL parameter ranges! Don't be conservative!
+   - 4D Rotations: Use ±5 to ±6 radians for drops (EXTREME spinning)
+   - Grid Density: 80-95 for drops, 5-15 for calm sections
+   - Chaos: 0.8-0.95 for chaotic sections, 0-0.2 for calm
+   - Speed: 2-3 for intense, 0.3-0.7 for calm
+
+2. **BEAT-SYNCHRONIZED 4D ROTATIONS**:
+   - Map each 4D axis to different musical elements:
+     * rot4dXW: Bass frequencies (±4 to ±6 for drops)
+     * rot4dYW: Mid/melody frequencies (±3 to ±5 for melodic sections)
+     * rot4dZW: High frequencies (±2 to ±4 for percussion)
+   - Use OPPOSITE rotations (positive/negative) for visual contrast
+   - Example Drop: {"rot4dXW": 5.5, "rot4dYW": -4.8, "rot4dZW": 4.2}
+
+3. **COLOR PATTERNS TO BEAT**:
+   - Intro: Cool blues/cyans (hue: 180-210)
+   - Build-Up: Shifting purples (hue: 240-280)
+   - Drop/Chorus: Hot magentas/reds (hue: 300-360 or 0-30)
+   - Breakdown: Calm greens (hue: 120-160)
+   - Outro: Return to blues (hue: 190-220)
+
+4. **MELODIC 4D MAPPING**:
+   - High melody notes → Increase rot4dYW (positive direction)
+   - Low melody notes → Decrease rot4dYW (negative direction)
+   - Chord changes → Sudden rot4dZW shifts
+   - Bassline → Strong rot4dXW oscillation
+
+5. **PATTERNED DYNAMIC RESPONSES**:
+   - Every 4 beats: Geometry should pulse with gridDensity ±30
+   - Every 8 beats: Consider geometry type change
+   - Every 16 beats: Major hue shift (±60 degrees)
+   - Drops: ALL parameters at maximum (gridDensity 90+, chaos 0.9+, speed 2.5+, extreme rotations)
+
+Return this JSON structure (ONLY JSON, no markdown):
 
 {
-  "songTitle": "Detected or estimated song title",
+  "songTitle": "Estimated title based on structure",
   "bpm": ${currentBPM},
-  "energy": "low/medium/high/extreme",
-  "genre": "detected or estimated genre",
+  "energy": "high/extreme",
+  "genre": "Estimated genre",
   "sections": [
     {
-      "name": "Intro/Verse/Chorus/Drop/Bridge/Outro/etc",
+      "name": "Section name",
       "startTime": 0.0,
-      "duration": 30.0,
+      "duration": 16.0,
       "system": "faceted/quantum/holographic",
       "geometry": 0-7,
       "choreographyMode": "chaos/pulse/wave/flow/dynamic",
@@ -1453,23 +1486,25 @@ Create a choreography plan with these sections (return ONLY valid JSON):
         "rot4dYW": -6.28 to 6.28,
         "rot4dZW": -6.28 to 6.28
       },
-      "description": "What's happening musically"
+      "description": "Musical events and why these parameters"
     }
   ],
-  "recommendations": "Overall choreography strategy"
+  "recommendations": "Strategy explanation"
 }
 
-Choreography Guidelines:
-- Use "faceted" for simple/minimal sections
-- Use "quantum" for complex/busy sections
-- Use "holographic" for intense/climactic sections
-- Chaos mode: Intense drops, rapid changes
-- Pulse mode: Strong beats, rhythmic sections
-- Wave mode: Smooth ambient builds
-- Flow mode: Quiet intros/outros
-- Dynamic mode: Balanced sections
+SYSTEM USAGE:
+- faceted: Minimal/ambient (intros, quiet verses)
+- quantum: Complex/layered (busy sections, builds)
+- holographic: MAXIMUM IMPACT (drops, climaxes) - ALWAYS use for drops!
 
-Return ONLY the JSON object, no markdown formatting.`;
+MODE USAGE:
+- chaos: Drops, intense moments (extreme random variation)
+- pulse: Strong rhythmic sections (beat-locked pulsing)
+- wave: Smooth builds (wavelike motion)
+- flow: Calm sections (gentle movement)
+- dynamic: Balanced auto-switching
+
+Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Use EXTREME values! Make it VISUALLY INTENSE!`;
 
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
                     method: 'POST',
