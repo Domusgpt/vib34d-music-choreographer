@@ -443,6 +443,7 @@
             <button class="ui-btn" id="export-video-btn" style="width: 100%; font-size: 9px; background: #0f0;">💾 EXPORT VIDEO (1-CLICK AUTO)</button>
             <button class="ui-btn" id="start-recording-btn" style="width: 100%; margin-top: 5px; font-size: 9px; background: #f80;">⏺ MANUAL RECORD</button>
             <button class="ui-btn" id="stop-recording-btn" style="width: 100%; margin-top: 5px; font-size: 9px; background: #555; display: none;">⏹ STOP RECORDING</button>
+            <div id="recording-timer" style="font-size: 10px; margin-top: 5px; color: #f80; font-weight: bold; display: none;"></div>
             <div id="export-status" style="font-size: 8px; margin-top: 5px; color: #0f0;"></div>
             <div id="export-progress" style="margin-top: 5px; height: 4px; background: rgba(0,255,0,0.2); border-radius: 2px; overflow: hidden; display: none;">
                 <div id="export-progress-fill" style="height: 100%; background: #0f0; width: 0%; transition: width 0.3s;"></div>
@@ -2564,25 +2565,48 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                 });
             }
 
-            // VIDEO RECORDING METHODS (REALTIME)
+            // VIDEO RECORDING METHODS (REALTIME SYNCHRONIZED)
             async startRecording() {
                 try {
+                    console.log('🎥 Initializing synchronized recording system...');
+
                     // Get the stage container
                     const stageContainer = document.getElementById('stage-container');
 
-                    // Create a composite canvas for recording
+                    // Create a high-res composite canvas for recording
                     this.recordingCanvas = document.createElement('canvas');
-                    this.recordingCanvas.width = window.innerWidth;
-                    this.recordingCanvas.height = window.innerHeight;
-                    const ctx = this.recordingCanvas.getContext('2d');
+                    this.recordingCanvas.width = 1920;  // HD resolution
+                    this.recordingCanvas.height = 1080;
+                    const ctx = this.recordingCanvas.getContext('2d', {
+                        alpha: false,
+                        desynchronized: false  // Keep synchronized for recording
+                    });
+
+                    // Set background to black (not transparent)
+                    ctx.fillStyle = '#000000';
+                    ctx.fillRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
 
                     // Get all visible canvases
-                    const canvases = stageContainer.querySelectorAll('canvas');
+                    const canvases = Array.from(stageContainer.querySelectorAll('canvas'));
+                    console.log(`📹 Found ${canvases.length} canvases to capture`);
 
-                    // Start capturing frames
-                    const stream = this.recordingCanvas.captureStream(30); // 30 FPS
+                    // Store original canvas sizes to restore later
+                    this.originalCanvasSizes = canvases.map(c => ({
+                        canvas: c,
+                        width: c.width,
+                        height: c.height
+                    }));
 
-                    // Add audio if available - use existing audio source to avoid "already connected" error
+                    // Temporarily resize canvases to HD for better quality capture
+                    canvases.forEach(canvas => {
+                        canvas.width = 1920;
+                        canvas.height = 1080;
+                    });
+
+                    // Start capturing frames at 30 FPS
+                    const stream = this.recordingCanvas.captureStream(30);
+
+                    // Add audio if available
                     if (this.audioElement && this.audioSource) {
                         // Create destination for recording audio stream
                         this.recordingAudioDest = this.audioContext.createMediaStreamDestination();
@@ -2594,18 +2618,20 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                         const audioTrack = this.recordingAudioDest.stream.getAudioTracks()[0];
                         if (audioTrack) {
                             stream.addTrack(audioTrack);
+                            console.log('🔊 Audio track added to recording');
                         }
                     }
 
-                    // Create MediaRecorder
+                    // Create MediaRecorder with high quality settings
                     const options = {
                         mimeType: 'video/webm;codecs=vp9',
-                        videoBitsPerSecond: 8000000 // 8 Mbps for high quality
+                        videoBitsPerSecond: 10000000 // 10 Mbps for HD quality
                     };
 
                     // Fallback if VP9 not supported
                     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
                         options.mimeType = 'video/webm;codecs=vp8';
+                        options.videoBitsPerSecond = 8000000;
                     }
 
                     this.mediaRecorder = new MediaRecorder(stream, options);
@@ -2621,17 +2647,41 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                         this.saveRecording();
                     };
 
-                    // Start rendering loop for recording
-                    const renderFrame = () => {
+                    // CRITICAL: Synchronized rendering loop
+                    // This runs at ~30 FPS and captures canvases AFTER they've rendered
+                    let frameCount = 0;
+                    const targetFPS = 30;
+                    const frameDuration = 1000 / targetFPS;
+                    let lastFrameTime = performance.now();
+
+                    const renderFrame = (currentTime) => {
                         if (!this.isRecording) return;
 
-                        // Clear composite canvas
-                        ctx.clearRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+                        const elapsed = currentTime - lastFrameTime;
 
-                        // Draw all canvases onto composite canvas
-                        canvases.forEach(canvas => {
-                            ctx.drawImage(canvas, 0, 0);
-                        });
+                        // Throttle to target FPS
+                        if (elapsed >= frameDuration) {
+                            lastFrameTime = currentTime - (elapsed % frameDuration);
+                            frameCount++;
+
+                            // Clear composite canvas with black background
+                            ctx.fillStyle = '#000000';
+                            ctx.fillRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+
+                            // Draw all canvases onto composite canvas
+                            // Use a small delay to ensure WebGL has finished rendering
+                            setTimeout(() => {
+                                canvases.forEach(canvas => {
+                                    if (canvas.width > 0 && canvas.height > 0) {
+                                        try {
+                                            ctx.drawImage(canvas, 0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+                                        } catch (e) {
+                                            console.warn('Canvas capture error:', e);
+                                        }
+                                    }
+                                });
+                            }, 0);
+                        }
 
                         requestAnimationFrame(renderFrame);
                     };
@@ -2639,13 +2689,13 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                     // Start recording
                     this.mediaRecorder.start(100); // Collect data every 100ms
                     this.isRecording = true;
-                    renderFrame();
+                    requestAnimationFrame(renderFrame);
 
                     // Update UI
-                    document.getElementById('start-recording-btn').style.display = 'none';
-                    document.getElementById('stop-recording-btn').style.display = 'block';
-                    document.getElementById('recording-status').textContent = '⏺ RECORDING...';
-                    document.getElementById('recording-timer').style.display = 'block';
+                    const startBtn = document.getElementById('start-recording-btn');
+                    const stopBtn = document.getElementById('stop-recording-btn');
+                    if (startBtn) startBtn.style.display = 'none';
+                    if (stopBtn) stopBtn.style.display = 'block';
 
                     // Start timer
                     this.recordingStartTime = Date.now();
@@ -2653,15 +2703,19 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                         const elapsed = Math.floor((Date.now() - this.recordingStartTime) / 1000);
                         const minutes = Math.floor(elapsed / 60);
                         const seconds = elapsed % 60;
-                        document.getElementById('recording-timer').textContent =
-                            `⏱ ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                        const timerEl = document.getElementById('recording-timer');
+                        if (timerEl) {
+                            timerEl.textContent = `⏺ REC ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                            timerEl.style.display = 'block';
+                        }
                     }, 1000);
 
-                    console.log('🎥 Recording started');
+                    console.log('✅ Recording started - synchronized 30 FPS capture');
 
                 } catch (error) {
-                    console.error('Recording error:', error);
+                    console.error('❌ Recording error:', error);
                     alert(`Failed to start recording: ${error.message}`);
+                    this.isRecording = false;
                 }
             }
 
@@ -2670,6 +2724,16 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
 
                 this.isRecording = false;
                 this.mediaRecorder.stop();
+
+                // Restore original canvas sizes
+                if (this.originalCanvasSizes) {
+                    this.originalCanvasSizes.forEach(({ canvas, width, height }) => {
+                        canvas.width = width;
+                        canvas.height = height;
+                    });
+                    this.originalCanvasSizes = null;
+                    console.log('✅ Canvas sizes restored to original dimensions');
+                }
 
                 // Disconnect recording audio destination if it exists
                 if (this.recordingAudioDest) {
@@ -2688,17 +2752,26 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                 }
 
                 // Update UI
-                document.getElementById('start-recording-btn').style.display = 'block';
-                document.getElementById('stop-recording-btn').style.display = 'none';
-                document.getElementById('recording-status').textContent = '💾 Saving video...';
+                const startBtn = document.getElementById('start-recording-btn');
+                const stopBtn = document.getElementById('stop-recording-btn');
+                const timerEl = document.getElementById('recording-timer');
 
-                console.log('🎥 Recording stopped');
+                if (startBtn) startBtn.style.display = 'block';
+                if (stopBtn) stopBtn.style.display = 'none';
+                if (timerEl) {
+                    timerEl.textContent = '💾 Saving video...';
+                }
+
+                console.log('🎥 Recording stopped - processing video...');
             }
 
             saveRecording() {
                 const blob = new Blob(this.recordedChunks, {
                     type: 'video/webm'
                 });
+
+                const sizeMB = (blob.size / (1024 * 1024)).toFixed(2);
+                console.log(`💾 Saving video: ${sizeMB} MB`);
 
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -2715,14 +2788,16 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                 }, 100);
 
                 // Update UI
-                document.getElementById('recording-status').textContent = '✅ Video saved!';
-                document.getElementById('recording-timer').style.display = 'none';
+                const timerEl = document.getElementById('recording-timer');
+                if (timerEl) {
+                    timerEl.textContent = `✅ Video saved! (${sizeMB} MB)`;
+                    setTimeout(() => {
+                        timerEl.style.display = 'none';
+                        timerEl.textContent = '';
+                    }, 5000);
+                }
 
-                setTimeout(() => {
-                    document.getElementById('recording-status').textContent = '';
-                }, 3000);
-
-                console.log('✅ Recording saved');
+                console.log(`✅ Recording saved: ${sizeMB} MB`);
             }
         }
 
