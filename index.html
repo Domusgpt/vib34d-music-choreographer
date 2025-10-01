@@ -443,8 +443,6 @@
             <button class="ui-btn" id="export-video-btn" style="width: 100%; font-size: 9px; background: #0f0;">💾 EXPORT VIDEO (1-CLICK AUTO)</button>
             <button class="ui-btn" id="start-recording-btn" style="width: 100%; margin-top: 5px; font-size: 9px; background: #f80;">⏺ MANUAL RECORD</button>
             <button class="ui-btn" id="stop-recording-btn" style="width: 100%; margin-top: 5px; font-size: 9px; background: #555; display: none;">⏹ STOP RECORDING</button>
-            <div id="recording-status" style="font-size: 8px; margin-top: 5px; color: #f80;"></div>
-            <div id="recording-timer" style="font-size: 8px; margin-top: 2px; color: #fff; display: none;"></div>
             <div id="export-status" style="font-size: 8px; margin-top: 5px; color: #0f0;"></div>
             <div id="export-progress" style="margin-top: 5px; height: 4px; background: rgba(0,255,0,0.2); border-radius: 2px; overflow: hidden; display: none;">
                 <div id="export-progress-fill" style="height: 100%; background: #0f0; width: 0%; transition: width 0.3s;"></div>
@@ -2627,9 +2625,6 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                     const renderFrame = () => {
                         if (!this.isRecording) return;
 
-                        // CRITICAL: Force visualizers to update for this frame
-                        this.updateVisualizers();
-
                         // Clear composite canvas
                         ctx.clearRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
 
@@ -2646,16 +2641,11 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                     this.isRecording = true;
                     renderFrame();
 
-                    // Update UI - with null checks
-                    const startBtn = document.getElementById('start-recording-btn');
-                    const stopBtn = document.getElementById('stop-recording-btn');
-                    const statusEl = document.getElementById('recording-status');
-                    const timerEl = document.getElementById('recording-timer');
-
-                    if (startBtn) startBtn.style.display = 'none';
-                    if (stopBtn) stopBtn.style.display = 'block';
-                    if (statusEl) statusEl.textContent = '⏺ RECORDING...';
-                    if (timerEl) timerEl.style.display = 'block';
+                    // Update UI
+                    document.getElementById('start-recording-btn').style.display = 'none';
+                    document.getElementById('stop-recording-btn').style.display = 'block';
+                    document.getElementById('recording-status').textContent = '⏺ RECORDING...';
+                    document.getElementById('recording-timer').style.display = 'block';
 
                     // Start timer
                     this.recordingStartTime = Date.now();
@@ -2663,10 +2653,8 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                         const elapsed = Math.floor((Date.now() - this.recordingStartTime) / 1000);
                         const minutes = Math.floor(elapsed / 60);
                         const seconds = elapsed % 60;
-                        const timerElement = document.getElementById('recording-timer');
-                        if (timerElement) {
-                            timerElement.textContent = `⏱ ${minutes}:${seconds.toString().padStart(2, '0')}`;
-                        }
+                        document.getElementById('recording-timer').textContent =
+                            `⏱ ${minutes}:${seconds.toString().padStart(2, '0')}`;
                     }, 1000);
 
                     console.log('🎥 Recording started');
@@ -2699,14 +2687,10 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                     this.recordingTimer = null;
                 }
 
-                // Update UI - with null checks
-                const startBtn = document.getElementById('start-recording-btn');
-                const stopBtn = document.getElementById('stop-recording-btn');
-                const statusEl = document.getElementById('recording-status');
-
-                if (startBtn) startBtn.style.display = 'block';
-                if (stopBtn) stopBtn.style.display = 'none';
-                if (statusEl) statusEl.textContent = '💾 Saving video...';
+                // Update UI
+                document.getElementById('start-recording-btn').style.display = 'block';
+                document.getElementById('stop-recording-btn').style.display = 'none';
+                document.getElementById('recording-status').textContent = '💾 Saving video...';
 
                 console.log('🎥 Recording stopped');
             }
@@ -2730,16 +2714,12 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                     URL.revokeObjectURL(url);
                 }, 100);
 
-                // Update UI - with null checks
-                const statusEl = document.getElementById('recording-status');
-                const timerEl = document.getElementById('recording-timer');
-
-                if (statusEl) statusEl.textContent = '✅ Video saved!';
-                if (timerEl) timerEl.style.display = 'none';
+                // Update UI
+                document.getElementById('recording-status').textContent = '✅ Video saved!';
+                document.getElementById('recording-timer').style.display = 'none';
 
                 setTimeout(() => {
-                    const status = document.getElementById('recording-status');
-                    if (status) status.textContent = '';
+                    document.getElementById('recording-status').textContent = '';
                 }, 3000);
 
                 console.log('✅ Recording saved');
