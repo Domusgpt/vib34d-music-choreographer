@@ -633,7 +633,12 @@
                 this.activeColorPalette = null;
                 this.activeSweeps = {};
 
-                // Pattern library
+                // Phase 2: Pattern Recognition & Reuse
+                this.patternTemplates = {}; // Store pattern templates by type (verse, chorus, bridge, etc.)
+                this.sectionPatterns = []; // Track which sections use which patterns
+                this.songStructure = ''; // Detected structure like "ABABCB" (A=verse, B=chorus, C=bridge)
+
+                // Pattern library (legacy - keeping for compatibility)
                 this.patterns = {
                     'pulse-grow': this.createPulseGrowPattern,
                     'geometry-switch': this.createGeometrySwitchPattern,
@@ -1437,28 +1442,37 @@ Song Information:
 
 🎯 ENHANCED CHOREOGRAPHY RULES:
 
-1. **COLOR PALETTES** - Use multi-color palettes that PULSE with the beat:
-   - Each section gets a colorPalette with 3-5 colors
+1. **PATTERN RECOGNITION & REUSE** - Detect song structure and reuse patterns:
+   - Identify pattern types: verse, chorus, bridge, intro, outro, drop, build, breakdown
+   - Add "pattern" field to each section (e.g., "pattern": "verse")
+   - ONLY define full parameters/palette/sweeps for the FIRST occurrence of each pattern
+   - For subsequent occurrences, ONLY provide: name, pattern, startTime, duration, system, choreographyMode
+   - System automatically reuses the pattern with variations (second, building, final-climax)
+   - Use DIFFERENT systems for same pattern (e.g., Verse 1: faceted, Verse 2: quantum)
+   - Example: Verse 1 gets full definition, Verse 2 just references "pattern": "verse" with different system
+
+2. **COLOR PALETTES** - Use multi-color palettes that PULSE with the beat:
+   - Each FIRST occurrence of a pattern gets colorPalette with 3-5 colors
    - Colors transition on the beat (beat-pulse, smooth-fade, snap-change, frequency-map)
    - Intro: Cool blues/cyans [180-210]
    - Build: Shifting purples [240-280]
    - Drop/Chorus: Hot magentas/reds [300-360, 0-30]
    - Breakdown: Calm greens [120-160]
 
-2. **ALGORITHMIC PARAMETER SWEEPS** - Parameters should MOVE, not sit still:
+3. **ALGORITHMIC PARAMETER SWEEPS** - Parameters should MOVE, not sit still:
    - Use sweep functions: sine-wave, sawtooth, triangle, pulse-train, exponential-decay, beat-locked-steps, linear-sweep
    - Sweep 4D rotations: rot4dXW/YW/ZW with sine waves for smooth spinning
    - Sweep gridDensity with sawtooth for building intensity
    - Sweep chaos with exponential-decay for drops that calm down
-   - ALWAYS include parameterSweeps for dynamic sections
+   - Include parameterSweeps for FIRST occurrence of each pattern
 
-3. **EXTREME PARAMETER VALUES**:
+4. **EXTREME PARAMETER VALUES**:
    - 4D Rotations: ±5 to ±6 radians for drops (EXTREME spinning)
    - Grid Density: 80-95 for drops, 5-15 for calm
    - Chaos: 0.8-0.95 for chaotic sections, 0-0.2 for calm
    - Speed: 2-3 for intense, 0.3-0.7 for calm
 
-4. **BEAT-SYNCHRONIZED 4D ROTATIONS**:
+5. **BEAT-SYNCHRONIZED 4D ROTATIONS**:
    - rot4dXW: Bass frequencies (±4 to ±6 for drops)
    - rot4dYW: Mid/melody (±3 to ±5 for melodic)
    - rot4dZW: High frequencies (±2 to ±4 for percussion)
@@ -1472,49 +1486,108 @@ Return this JSON structure (ONLY JSON, no markdown):
   "genre": "Estimated genre",
   "sections": [
     {
-      "name": "Section name",
+      "name": "Verse 1",
+      "pattern": "verse",
       "startTime": 0.0,
       "duration": 16.0,
-      "system": "faceted/quantum/holographic",
-      "geometry": 0-7,
-      "choreographyMode": "chaos/pulse/wave/flow/dynamic",
+      "system": "faceted",
+      "geometry": 2,
+      "choreographyMode": "wave",
       "parameters": {
-        "gridDensity": 50,
-        "morphFactor": 0.5,
-        "chaos": 0.3,
-        "speed": 1.0,
-        "intensity": 0.8,
-        "saturation": 0.9,
-        "rot4dXW": 2.0,
-        "rot4dYW": 1.5,
-        "rot4dZW": 1.0
+        "gridDensity": 40,
+        "morphFactor": 0.4,
+        "chaos": 0.2,
+        "speed": 0.8,
+        "intensity": 0.7,
+        "saturation": 0.85,
+        "rot4dXW": 1.5,
+        "rot4dYW": 1.0,
+        "rot4dZW": 0.8
       },
       "colorPalette": {
         "colors": [
-          {"hue": 180, "saturation": 0.9, "intensity": 0.8},
           {"hue": 200, "saturation": 0.85, "intensity": 0.7},
-          {"hue": 220, "saturation": 0.95, "intensity": 0.9}
+          {"hue": 220, "saturation": 0.8, "intensity": 0.65},
+          {"hue": 240, "saturation": 0.9, "intensity": 0.75}
         ],
-        "transitionMode": "beat-pulse",
-        "barsPerChange": 2
+        "transitionMode": "smooth-fade",
+        "barsPerChange": 4
       },
       "parameterSweeps": {
         "rot4dXW": {
           "function": "sine-wave",
-          "amplitude": 2.0,
-          "frequency": 0.5,
-          "offset": 2.0,
-          "beatSync": true
-        },
-        "gridDensity": {
-          "function": "sawtooth",
-          "min": 30,
-          "max": 70,
-          "period": 8,
+          "amplitude": 1.0,
+          "frequency": 0.3,
+          "offset": 1.5,
           "beatSync": true
         }
       },
-      "description": "Why these settings"
+      "description": "Calm verse with smooth blue/purple colors"
+    },
+    {
+      "name": "Chorus 1",
+      "pattern": "chorus",
+      "startTime": 16.0,
+      "duration": 16.0,
+      "system": "holographic",
+      "geometry": 7,
+      "choreographyMode": "chaos",
+      "parameters": {
+        "gridDensity": 80,
+        "morphFactor": 0.8,
+        "chaos": 0.75,
+        "speed": 2.0,
+        "intensity": 0.95,
+        "saturation": 1.0,
+        "rot4dXW": 4.5,
+        "rot4dYW": 3.8,
+        "rot4dZW": 3.2
+      },
+      "colorPalette": {
+        "colors": [
+          {"hue": 320, "saturation": 1.0, "intensity": 0.95},
+          {"hue": 340, "saturation": 0.95, "intensity": 0.9},
+          {"hue": 0, "saturation": 0.98, "intensity": 0.92}
+        ],
+        "transitionMode": "beat-pulse",
+        "barsPerChange": 1
+      },
+      "parameterSweeps": {
+        "rot4dXW": {
+          "function": "sine-wave",
+          "amplitude": 3.0,
+          "frequency": 1.5,
+          "offset": 4.0,
+          "beatSync": true
+        },
+        "chaos": {
+          "function": "exponential-decay",
+          "start": 0.95,
+          "decayRate": 0.2,
+          "beatSync": false
+        }
+      },
+      "description": "Explosive chorus with magenta/red beat-pulsing colors"
+    },
+    {
+      "name": "Verse 2",
+      "pattern": "verse",
+      "startTime": 32.0,
+      "duration": 16.0,
+      "system": "quantum",
+      "geometry": 2,
+      "choreographyMode": "wave",
+      "description": "Same verse pattern but with quantum system"
+    },
+    {
+      "name": "Chorus 2 (Final)",
+      "pattern": "chorus",
+      "startTime": 48.0,
+      "duration": 16.0,
+      "system": "holographic",
+      "geometry": 7,
+      "choreographyMode": "chaos",
+      "description": "Final chorus - system will apply variation=final-climax automatically"
     }
   ],
   "recommendations": "Strategy explanation"
@@ -1589,8 +1662,11 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
 
                 // Create choreography sequences from AI analysis
                 if (analysis.sections && Array.isArray(analysis.sections)) {
-                    analysis.sections.forEach((section, index) => {
-                        console.log(`🎬 Section ${index + 1}: ${section.name} (${section.startTime}s, ${section.system})`);
+                    // PHASE 2: Process pattern recognition before creating sequences
+                    const processedSections = this.processPatternRecognition(analysis.sections);
+
+                    processedSections.forEach((section, index) => {
+                        console.log(`🎬 Section ${index + 1}: ${section.name} (${section.startTime}s, ${section.system}, pattern: ${section.pattern || 'none'})`);
 
                         // Create a timed sequence for this section
                         const sequence = {
@@ -1601,6 +1677,7 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                             geometry: section.geometry,
                             mode: section.choreographyMode,
                             parameters: section.parameters,
+                            pattern: section.pattern, // Store pattern type
                             active: false
                         };
 
@@ -1624,6 +1701,7 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                     this.startSequenceMonitoring();
 
                     console.log(`✅ Applied ${analysis.sections.length} AI-generated sequences`);
+                    console.log(`🎵 Song Structure: ${this.songStructure}`);
                 }
 
                 // Display recommendations
@@ -2071,6 +2149,273 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Inclu
                     this.setParameter(param, value);
                     this.baseParams[param] = value;
                 });
+            }
+
+            // PHASE 2: PATTERN RECOGNITION & REUSE
+
+            /**
+             * Create a pattern template from a section
+             * @param {Object} section - Section data with parameters, palette, sweeps
+             * @param {String} patternType - Type identifier (verse, chorus, bridge, etc.)
+             * @returns {Object} Pattern template
+             */
+            createPatternTemplate(section, patternType) {
+                return {
+                    type: patternType,
+                    geometry: section.geometry,
+                    mode: section.mode || section.choreographyMode,
+                    parameters: { ...section.parameters },
+                    colorPalette: section.colorPalette ? { ...section.colorPalette } : null,
+                    parameterSweeps: section.parameterSweeps ? { ...section.parameterSweeps } : null,
+                    description: section.description || ''
+                };
+            }
+
+            /**
+             * Apply a pattern template to a section with optional system override
+             * @param {Object} template - Pattern template to apply
+             * @param {Object} section - Target section
+             * @param {String} systemOverride - Optional system override
+             * @param {String} variation - Variation name (first, second, final-climax, etc.)
+             */
+            applyPatternToSection(template, section, systemOverride = null, variation = null) {
+                // Copy core pattern properties
+                section.geometry = template.geometry;
+                section.mode = template.mode;
+                section.parameters = { ...template.parameters };
+
+                // Copy color palette with optional variation
+                if (template.colorPalette) {
+                    section.colorPalette = { ...template.colorPalette };
+
+                    // Apply variation adjustments
+                    if (variation) {
+                        this.applyPatternVariation(section, variation);
+                    }
+                }
+
+                // Copy parameter sweeps
+                if (template.parameterSweeps) {
+                    section.parameterSweeps = { ...template.parameterSweeps };
+                }
+
+                // Override system if specified
+                if (systemOverride) {
+                    section.system = systemOverride;
+                }
+
+                console.log(`🎯 Applied ${template.type} pattern to ${section.name} (system: ${section.system}, variation: ${variation || 'default'})`);
+            }
+
+            /**
+             * Apply variation adjustments to a section
+             * @param {Object} section - Section to modify
+             * @param {String} variation - Variation type
+             */
+            applyPatternVariation(section, variation) {
+                switch (variation) {
+                    case 'low-energy':
+                        // Reduce intensity for low-energy variations
+                        if (section.parameters) {
+                            section.parameters.gridDensity = Math.max(20, (section.parameters.gridDensity || 50) * 0.6);
+                            section.parameters.chaos = Math.max(0.1, (section.parameters.chaos || 0.3) * 0.5);
+                            section.parameters.speed = Math.max(0.3, (section.parameters.speed || 1.0) * 0.7);
+                        }
+                        // Reduce color intensity
+                        if (section.colorPalette && section.colorPalette.colors) {
+                            section.colorPalette.colors = section.colorPalette.colors.map(c => ({
+                                ...c,
+                                intensity: (c.intensity || 0.8) * 0.7
+                            }));
+                        }
+                        break;
+
+                    case 'building':
+                        // Slightly increase intensity for building variations
+                        if (section.parameters) {
+                            section.parameters.gridDensity = Math.min(90, (section.parameters.gridDensity || 50) * 1.2);
+                            section.parameters.speed = Math.min(2.5, (section.parameters.speed || 1.0) * 1.3);
+                        }
+                        // Add sawtooth sweep to grid density for building effect
+                        if (!section.parameterSweeps) section.parameterSweeps = {};
+                        section.parameterSweeps.gridDensity = {
+                            function: 'sawtooth',
+                            min: section.parameters.gridDensity * 0.8,
+                            max: section.parameters.gridDensity * 1.2,
+                            period: 8,
+                            beatSync: true
+                        };
+                        break;
+
+                    case 'post-chorus':
+                        // Slightly lower energy after chorus
+                        if (section.parameters) {
+                            section.parameters.gridDensity = Math.max(30, (section.parameters.gridDensity || 50) * 0.8);
+                            section.parameters.chaos = Math.max(0.2, (section.parameters.chaos || 0.3) * 0.7);
+                        }
+                        break;
+
+                    case 'first':
+                        // First occurrence - standard intensity
+                        // No changes needed, this is the base template
+                        break;
+
+                    case 'second':
+                        // Second occurrence - slightly more intense
+                        if (section.parameters) {
+                            section.parameters.gridDensity = Math.min(95, (section.parameters.gridDensity || 50) * 1.1);
+                            section.parameters.intensity = Math.min(1.0, (section.parameters.intensity || 0.8) * 1.1);
+                        }
+                        break;
+
+                    case 'final-climax':
+                        // Final occurrence - MAXIMUM intensity
+                        if (section.parameters) {
+                            section.parameters.gridDensity = Math.min(100, (section.parameters.gridDensity || 50) * 1.5);
+                            section.parameters.chaos = Math.min(0.95, (section.parameters.chaos || 0.5) * 1.3);
+                            section.parameters.speed = Math.min(3.0, (section.parameters.speed || 1.0) * 1.5);
+                        }
+                        // Increase color intensity
+                        if (section.colorPalette && section.colorPalette.colors) {
+                            section.colorPalette.colors = section.colorPalette.colors.map(c => ({
+                                ...c,
+                                intensity: Math.min(1.0, (c.intensity || 0.8) * 1.2),
+                                saturation: Math.min(1.0, (c.saturation || 0.9) * 1.1)
+                            }));
+                        }
+                        break;
+                }
+            }
+
+            /**
+             * Detect song structure from sections
+             * @param {Array} sections - Array of sections with pattern types
+             * @returns {String} Structure string like "ABABCB"
+             */
+            detectSongStructure(sections) {
+                const patternMap = {};
+                let nextLetter = 'A';
+                let structure = '';
+
+                sections.forEach(section => {
+                    const patternType = section.pattern || section.name.toLowerCase();
+
+                    // Normalize pattern names
+                    let normalizedPattern = patternType;
+                    if (patternType.includes('verse')) normalizedPattern = 'verse';
+                    else if (patternType.includes('chorus')) normalizedPattern = 'chorus';
+                    else if (patternType.includes('bridge')) normalizedPattern = 'bridge';
+                    else if (patternType.includes('intro')) normalizedPattern = 'intro';
+                    else if (patternType.includes('outro')) normalizedPattern = 'outro';
+                    else if (patternType.includes('drop')) normalizedPattern = 'drop';
+                    else if (patternType.includes('build')) normalizedPattern = 'build';
+
+                    // Assign letter if new pattern
+                    if (!patternMap[normalizedPattern]) {
+                        patternMap[normalizedPattern] = nextLetter;
+                        nextLetter = String.fromCharCode(nextLetter.charCodeAt(0) + 1);
+                    }
+
+                    structure += patternMap[normalizedPattern];
+                });
+
+                return structure;
+            }
+
+            /**
+             * Process AI-generated sections for pattern recognition and reuse
+             * @param {Array} sections - Array of sections from AI
+             * @returns {Array} Processed sections with pattern reuse applied
+             */
+            processPatternRecognition(sections) {
+                if (!sections || sections.length === 0) return sections;
+
+                console.log('🎯 Phase 2: Processing pattern recognition...');
+
+                // Clear previous pattern data
+                this.patternTemplates = {};
+                this.sectionPatterns = [];
+
+                // Group sections by pattern type
+                const patternGroups = {};
+
+                sections.forEach((section, index) => {
+                    const patternType = section.pattern || this.inferPatternType(section);
+                    section.pattern = patternType; // Store pattern type
+
+                    if (!patternGroups[patternType]) {
+                        patternGroups[patternType] = [];
+                    }
+                    patternGroups[patternType].push({ section, index });
+                });
+
+                // Create templates from first occurrence of each pattern
+                Object.entries(patternGroups).forEach(([patternType, occurrences]) => {
+                    if (occurrences.length > 0) {
+                        const firstOccurrence = occurrences[0].section;
+                        this.patternTemplates[patternType] = this.createPatternTemplate(firstOccurrence, patternType);
+                        console.log(`📋 Created ${patternType} template from section: ${firstOccurrence.name}`);
+                    }
+
+                    // Apply pattern to subsequent occurrences with variations
+                    if (occurrences.length > 1) {
+                        occurrences.slice(1).forEach((item, idx) => {
+                            const { section, index } = item;
+                            const variation = this.determineVariation(idx + 1, occurrences.length - 1);
+                            const systemOverride = section.system; // Keep AI-suggested system
+
+                            this.applyPatternToSection(
+                                this.patternTemplates[patternType],
+                                section,
+                                systemOverride,
+                                variation
+                            );
+                        });
+                    }
+                });
+
+                // Detect and store song structure
+                this.songStructure = this.detectSongStructure(sections);
+                console.log(`🎵 Song structure: ${this.songStructure}`);
+                console.log(`📊 Pattern templates: ${Object.keys(this.patternTemplates).join(', ')}`);
+
+                return sections;
+            }
+
+            /**
+             * Infer pattern type from section name
+             * @param {Object} section - Section object
+             * @returns {String} Pattern type
+             */
+            inferPatternType(section) {
+                const name = (section.name || '').toLowerCase();
+
+                if (name.includes('verse')) return 'verse';
+                if (name.includes('chorus')) return 'chorus';
+                if (name.includes('bridge')) return 'bridge';
+                if (name.includes('intro')) return 'intro';
+                if (name.includes('outro')) return 'outro';
+                if (name.includes('drop')) return 'drop';
+                if (name.includes('build')) return 'build';
+                if (name.includes('breakdown')) return 'breakdown';
+
+                return 'generic';
+            }
+
+            /**
+             * Determine variation type based on occurrence number
+             * @param {Number} occurrenceNum - Which occurrence (1-indexed)
+             * @param {Number} totalOccurrences - Total number of occurrences
+             * @returns {String} Variation name
+             */
+            determineVariation(occurrenceNum, totalOccurrences) {
+                if (occurrenceNum === totalOccurrences) {
+                    return 'final-climax';
+                } else if (occurrenceNum === 1) {
+                    return 'second';
+                } else {
+                    return 'building';
+                }
             }
 
             // OFFLINE VIDEO EXPORT (NON-REALTIME RENDERING)
