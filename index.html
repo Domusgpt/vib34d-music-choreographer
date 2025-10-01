@@ -1871,17 +1871,19 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Use E
                     // Start capturing frames
                     const stream = this.recordingCanvas.captureStream(30); // 30 FPS
 
-                    // Add audio if available
-                    if (this.audioElement) {
-                        const audioCtx = new AudioContext();
-                        const source = audioCtx.createMediaElementSource(this.audioElement);
-                        const dest = audioCtx.createMediaStreamDestination();
-                        source.connect(dest);
-                        source.connect(audioCtx.destination); // Continue playing audio
+                    // Add audio if available - use existing audio source to avoid "already connected" error
+                    if (this.audioElement && this.audioSource) {
+                        // Create destination for recording audio stream
+                        this.recordingAudioDest = this.audioContext.createMediaStreamDestination();
 
-                        // Combine video and audio streams
-                        const audioTrack = dest.stream.getAudioTracks()[0];
-                        stream.addTrack(audioTrack);
+                        // Connect existing audio source to recording destination
+                        this.audioSource.connect(this.recordingAudioDest);
+
+                        // Get audio track and add to recording stream
+                        const audioTrack = this.recordingAudioDest.stream.getAudioTracks()[0];
+                        if (audioTrack) {
+                            stream.addTrack(audioTrack);
+                        }
                     }
 
                     // Create MediaRecorder
@@ -1957,6 +1959,16 @@ Create 6-10 sections covering the full ${songDuration.toFixed(0)} seconds. Use E
 
                 this.isRecording = false;
                 this.mediaRecorder.stop();
+
+                // Disconnect recording audio destination if it exists
+                if (this.recordingAudioDest) {
+                    try {
+                        this.recordingAudioDest.disconnect();
+                        this.recordingAudioDest = null;
+                    } catch (e) {
+                        console.warn('Error disconnecting recording audio:', e);
+                    }
+                }
 
                 // Stop timer
                 if (this.recordingTimer) {
