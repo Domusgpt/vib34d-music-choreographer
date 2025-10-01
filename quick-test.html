@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Gemini API Test</title>
+    <style>
+        body {
+            background: #000;
+            color: #0ff;
+            font-family: monospace;
+            padding: 20px;
+        }
+        input {
+            width: 500px;
+            padding: 10px;
+            background: rgba(0,255,255,0.1);
+            border: 1px solid #0ff;
+            color: #0ff;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        button {
+            background: #0ff;
+            color: #000;
+            border: none;
+            padding: 10px 30px;
+            font-family: monospace;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #0aa;
+        }
+        .output {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #0ff;
+            background: rgba(0,255,255,0.05);
+        }
+        .success { color: #0f0; }
+        .error { color: #f00; }
+        .warning { color: #ff0; }
+        pre {
+            background: rgba(0,255,255,0.1);
+            padding: 10px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🤖 Quick Gemini API Test</h1>
+
+    <div style="margin: 20px 0;">
+        <h3>Step 1: Get Your API Key</h3>
+        <p>Visit: <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #0ff;">https://aistudio.google.com/app/apikey</a></p>
+        <p class="warning">⚠️ Your key should start with "AIza" and be about 39 characters long</p>
+        <p class="warning">⚠️ Example: AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</p>
+    </div>
+
+    <div style="margin: 20px 0;">
+        <h3>Step 2: Enter Your API Key</h3>
+        <input type="password" id="api-key" placeholder="Paste your Gemini API key here..." value="">
+        <br><br>
+        <button onclick="validateKey()">1️⃣ Validate Key Format</button>
+        <button onclick="testAPI()">2️⃣ Test API Connection</button>
+        <button onclick="testChoreography()">3️⃣ Test Full Choreography</button>
+    </div>
+
+    <div id="output" class="output">
+        <p>Results will appear here...</p>
+    </div>
+
+    <script>
+        function validateKey() {
+            const apiKey = document.getElementById('api-key').value.trim();
+            const output = document.getElementById('output');
+
+            if (!apiKey) {
+                output.innerHTML = '<p class="error">❌ No API key entered</p>';
+                return;
+            }
+
+            let validation = '<h3>Key Validation:</h3>';
+            validation += `<p>Length: ${apiKey.length} characters</p>`;
+
+            if (apiKey.startsWith('AIza')) {
+                validation += '<p class="success">✅ Starts with "AIza" (correct format)</p>';
+            } else {
+                validation += '<p class="error">❌ Does NOT start with "AIza" (wrong format)</p>';
+                validation += '<p class="warning">Your key should look like: AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</p>';
+            }
+
+            if (apiKey.length >= 35 && apiKey.length <= 45) {
+                validation += '<p class="success">✅ Length looks correct (35-45 chars)</p>';
+            } else {
+                validation += `<p class="error">❌ Length seems wrong (expected 35-45, got ${apiKey.length})</p>`;
+            }
+
+            if (/^[A-Za-z0-9_-]+$/.test(apiKey)) {
+                validation += '<p class="success">✅ Contains only valid characters</p>';
+            } else {
+                validation += '<p class="error">❌ Contains invalid characters (should be letters, numbers, -, _)</p>';
+            }
+
+            output.innerHTML = validation;
+        }
+
+        async function testAPI() {
+            const apiKey = document.getElementById('api-key').value.trim();
+            const output = document.getElementById('output');
+
+            if (!apiKey) {
+                output.innerHTML = '<p class="error">❌ Please enter an API key first</p>';
+                return;
+            }
+
+            if (!apiKey.startsWith('AIza')) {
+                output.innerHTML = '<p class="error">❌ Invalid key format. Must start with "AIza"</p>';
+                return;
+            }
+
+            output.innerHTML = '<p class="warning">🔄 Testing API connection...</p>';
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: "Say hello in exactly 5 words"
+                            }]
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(`API Error ${response.status}: ${errorData}`);
+                }
+
+                const data = await response.json();
+                const text = data.candidates[0].content.parts[0].text;
+
+                output.innerHTML = `
+                    <h3 class="success">✅ API Connection Successful!</h3>
+                    <p><strong>Response from Gemini:</strong></p>
+                    <pre>${text}</pre>
+                    <p class="success">🎉 Your API key is working correctly!</p>
+                    <p>Now click "Test Full Choreography" to test music analysis.</p>
+                `;
+
+            } catch (error) {
+                output.innerHTML = `
+                    <h3 class="error">❌ API Test Failed</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <h4>Common Issues:</h4>
+                    <ul>
+                        <li><strong>400 Bad Request:</strong> API key format is wrong</li>
+                        <li><strong>403 Forbidden:</strong> API key is invalid or expired</li>
+                        <li><strong>429 Too Many Requests:</strong> Rate limit exceeded</li>
+                    </ul>
+                    <p>Double-check your API key at: <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #0ff;">https://aistudio.google.com/app/apikey</a></p>
+                `;
+            }
+        }
+
+        async function testChoreography() {
+            const apiKey = document.getElementById('api-key').value.trim();
+            const output = document.getElementById('output');
+
+            if (!apiKey || !apiKey.startsWith('AIza')) {
+                output.innerHTML = '<p class="error">❌ Please validate your API key first</p>';
+                return;
+            }
+
+            output.innerHTML = '<p class="warning">🔄 Requesting choreography analysis...</p>';
+
+            try {
+                const prompt = `Create a choreography plan for a 120-second dance track at 128 BPM. Return ONLY valid JSON:
+{
+  "songTitle": "Test Track",
+  "bpm": 128,
+  "energy": "high",
+  "genre": "EDM",
+  "sections": [
+    {
+      "name": "Intro",
+      "startTime": 0,
+      "duration": 20,
+      "system": "faceted",
+      "geometry": 1,
+      "choreographyMode": "flow",
+      "parameters": {"gridDensity": 15, "morphFactor": 1.0, "chaos": 0.2, "speed": 1.0, "hue": 200, "intensity": 0.5, "saturation": 0.8, "rot4dXW": 0.5, "rot4dYW": 0.3, "rot4dZW": 0.2}
+    }
+  ]
+}`;
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: prompt
+                            }]
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error ${response.status}`);
+                }
+
+                const data = await response.json();
+                let text = data.candidates[0].content.parts[0].text;
+
+                // Extract JSON
+                if (text.includes('```json')) {
+                    text = text.replace(/```json\n/, '').replace(/\n```/, '');
+                } else if (text.includes('```')) {
+                    text = text.replace(/```\n/, '').replace(/\n```/, '');
+                }
+
+                const result = JSON.parse(text);
+
+                output.innerHTML = `
+                    <h3 class="success">✅ Choreography Analysis Complete!</h3>
+                    <p><strong>AI Generated:</strong></p>
+                    <ul>
+                        <li>Song: ${result.songTitle}</li>
+                        <li>BPM: ${result.bpm}</li>
+                        <li>Energy: ${result.energy}</li>
+                        <li>Sections: ${result.sections?.length || 0}</li>
+                    </ul>
+                    <p><strong>Full Response:</strong></p>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                    <p class="success">🎉 Full choreography system is working!</p>
+                    <p>You can now use this in the main choreographer.</p>
+                `;
+
+            } catch (error) {
+                output.innerHTML = `
+                    <h3 class="error">❌ Choreography Test Failed</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
